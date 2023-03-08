@@ -2,7 +2,7 @@
     <string name="app_name">sample_aibox</string>
     <string name="switch_camera">Enable  Camera</string>
     <string name="btn_detect">Start</string>
-    <string name="tv_des">Model File:sdcard/slam_config/apple_model.tflite\nImage File:sdcard/apple.jpeg</string>
+    <string name="tv_des">Model File:sdcard/apple_model.tflite\nImage File:sdcard/apple.jpeg</string>
     <string name="btn_stop_detect">stop</string>
     <string name="btn_open_image">Open local image</string>
     <string name="btn_open_camera">Open the camera</string>

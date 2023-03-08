@@ -54,45 +54,45 @@ replace_by_sed() {
   fi
 }
 
-download_and_extract() {
-  local usage="Usage: download_and_extract URL DIR"
-  local url="${1:?${usage}}"
-  local dir="${2:?${usage}}"
-  echo "downloading ${url}" >&2
-  mkdir -p "${dir}"
-  if [[ "${url}" == *gz ]]; then
-    curl -Ls "${url}" | tar -C "${dir}" --strip-components=1 -xz
-  elif [[ "${url}" == *zip ]]; then
-    tempdir=$(mktemp -d)
-    tempdir2=$(mktemp -d)
+#download_and_extract() {
+#  local usage="Usage: download_and_extract URL DIR"
+#  local url="${1:?${usage}}"
+#  local dir="${2:?${usage}}"
+#  echo "downloading ${url}" >&2
+#  mkdir -p "${dir}"
+#  if [[ "${url}" == *gz ]]; then
+#    curl -Ls "${url}" | tar -C "${dir}" --strip-components=1 -xz
+#  elif [[ "${url}" == *zip ]]; then
+#    tempdir=$(mktemp -d)
+#    tempdir2=$(mktemp -d)
+#
+#    curl -L ${url} > ${tempdir}/zipped.zip
+#    unzip ${tempdir}/zipped.zip -d ${tempdir2}
+#
+#    # If the zip file contains nested directories, extract the files from the
+#    # inner directory.
+#    if ls ${tempdir2}/*/* 1> /dev/null 2>&1; then
+#      # unzip has no strip components, so unzip to a temp dir, and move the
+#      # files we want from the tempdir to destination.
+#      cp -R ${tempdir2}/*/* ${dir}/
+#    else
+#      cp -R ${tempdir2}/* ${dir}/
+#    fi
+#    rm -rf ${tempdir2} ${tempdir}
+#  fi
+#
+#  # Delete any potential BUILD files, which would interfere with Bazel builds.
+#  find "${dir}" -type f -name '*BUILD' -delete
+#}
 
-    curl -L ${url} > ${tempdir}/zipped.zip
-    unzip ${tempdir}/zipped.zip -d ${tempdir2}
-
-    # If the zip file contains nested directories, extract the files from the
-    # inner directory.
-    if ls ${tempdir2}/*/* 1> /dev/null 2>&1; then
-      # unzip has no strip components, so unzip to a temp dir, and move the
-      # files we want from the tempdir to destination.
-      cp -R ${tempdir2}/*/* ${dir}/
-    else
-      cp -R ${tempdir2}/* ${dir}/
-    fi
-    rm -rf ${tempdir2} ${tempdir}
-  fi
-
-  # Delete any potential BUILD files, which would interfere with Bazel builds.
-  find "${dir}" -type f -name '*BUILD' -delete
-}
-
-download_and_extract "${EIGEN_URL}" "${DOWNLOADS_DIR}/eigen"
-download_and_extract "${GEMMLOWP_URL}" "${DOWNLOADS_DIR}/gemmlowp"
-download_and_extract "${GOOGLETEST_URL}" "${DOWNLOADS_DIR}/googletest"
-download_and_extract "${ABSL_URL}" "${DOWNLOADS_DIR}/absl"
-download_and_extract "${NEON_2_SSE_URL}" "${DOWNLOADS_DIR}/neon_2_sse"
-download_and_extract "${FARMHASH_URL}" "${DOWNLOADS_DIR}/farmhash"
-download_and_extract "${FLATBUFFERS_URL}" "${DOWNLOADS_DIR}/flatbuffers"
-download_and_extract "${FFT2D_URL}" "${DOWNLOADS_DIR}/fft2d"
+#download_and_extract "${EIGEN_URL}" "${DOWNLOADS_DIR}/eigen"
+#download_and_extract "${GEMMLOWP_URL}" "${DOWNLOADS_DIR}/gemmlowp"
+#download_and_extract "${GOOGLETEST_URL}" "${DOWNLOADS_DIR}/googletest"
+#download_and_extract "${ABSL_URL}" "${DOWNLOADS_DIR}/absl"
+#download_and_extract "${NEON_2_SSE_URL}" "${DOWNLOADS_DIR}/neon_2_sse"
+#download_and_extract "${FARMHASH_URL}" "${DOWNLOADS_DIR}/farmhash"
+#download_and_extract "${FLATBUFFERS_URL}" "${DOWNLOADS_DIR}/flatbuffers"
+#download_and_extract "${FFT2D_URL}" "${DOWNLOADS_DIR}/fft2d"
 
 replace_by_sed 's#static uint32x4_t p4ui_CONJ_XOR = vld1q_u32( conj_XOR_DATA );#static uint32x4_t p4ui_CONJ_XOR; // = vld1q_u32( conj_XOR_DATA ); - Removed by script#' \
   "${DOWNLOADS_DIR}/eigen/Eigen/src/Core/arch/NEON/Complex.h"
