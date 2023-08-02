@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <EditText
+            android:id="@+id/et_ai_result"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"/>
+
+        <Button
+            android:text="set ai result"
+            android:layout_marginStart="10dp"
+            android:id="@+id/btn_set_ai_result"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="onClick" />
+
+    </LinearLayout>
+
+    <Button
+        android:text="get location"
+        android:layout_marginTop="10dp"
+        android:id="@+id/btn_get_location"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="onClick" />
+
+    <Button
+        android:layout_marginTop="10dp"
+        android:text="get speed"
+        android:id="@+id/btn_get_speed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="onClick" />
+
+    <TextView
+        android:id="@+id/tv_result"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+</LinearLayout>
