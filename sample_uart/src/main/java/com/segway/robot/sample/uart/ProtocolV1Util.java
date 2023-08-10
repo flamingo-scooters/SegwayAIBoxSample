@@ -11,6 +11,11 @@ import com.segway.robot.datatransmit.utils.NativeByteBuffer;
  * <p>
  * Communication data is defined as follows.
  * <p>
+ * DataTransmitV1 is developed according to Segway's internal IoT Comm interface.
+ * The current interface is in beta and subject to change at any time.
+ * Please contact Segway to define your own interface.
+ *
+ * <p>
  * #pragma pack(1)
  * typedef struct AiResult_ {
  * uint8_t aiInferenceResult:4;
