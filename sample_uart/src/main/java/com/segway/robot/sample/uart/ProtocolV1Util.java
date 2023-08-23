@@ -33,13 +33,13 @@ import com.segway.robot.datatransmit.utils.NativeByteBuffer;
  * <p>
  * #pragma pack(1)
  * typedef struct GpsData_ {
- * int32_t timestamp;
  * int32_t gps_longitude;
  * int32_t gps_latitude;
  * int32_t gps_at;
  * int16_t gps_heading;
  * int16_t gps_speed;
  * int16_t gps_hdop;
+ * int32_t timestamp;
  * } GpsData;
  * #pragma pack()
  * <p>
@@ -106,13 +106,13 @@ public class ProtocolV1Util {
             int type = nativeData.getByte();
             long timestamp = nativeData.getLong();
             int size = nativeData.getByte();
-            long locTimestamp = nativeData.getInt() * 1000000L;
             int longitude = nativeData.getInt();
             int latitude = nativeData.getInt();
             int gpsAt = nativeData.getInt();
             int gpsHeading = nativeData.getShort();
             int gpsSpeed = nativeData.getShort();
             int gpsHdop = nativeData.getShort();
+            long locTimestamp = nativeData.getInt() * 1000000L;
             nativeData.recycle();
             if (type == TYPE_IOT) {
                 return new LocationData(locTimestamp, longitude, latitude, gpsAt, gpsHeading, gpsSpeed, gpsHdop);
