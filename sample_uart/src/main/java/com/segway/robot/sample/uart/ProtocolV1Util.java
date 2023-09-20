@@ -2,9 +2,9 @@ package com.segway.robot.sample.uart;
 
 import android.os.RemoteException;
 
-import com.segway.robot.datatransmit.DataTransmitV1;
-import com.segway.robot.datatransmit.exception.DataTransmitUnbindException;
 import com.segway.robot.datatransmit.utils.NativeByteBuffer;
+import com.segway.robot.service.AiBoxServiceManager;
+import com.segway.robot.service.execption.ServiceUnbindException;
 
 /**
  * @author xianghui.zhang
@@ -74,16 +74,16 @@ public class ProtocolV1Util {
     private static final int[] IOT_PARAM = new int[]{TYPE_IOT};
     private static final int[] IOT_LEN_PARAM = new int[]{22};
 
-    public static void sendAiResult(int aiInferenceResult, int pedestrianDetected) throws DataTransmitUnbindException, RemoteException {
+    public static void sendAiResult(int aiInferenceResult, int pedestrianDetected) throws RemoteException, ServiceUnbindException {
         NativeByteBuffer nativeData = NativeByteBuffer.obtain(1);
         nativeData.put(aiInferenceResult, 4);
         nativeData.put(pedestrianDetected, 1);
-        DataTransmitV1.getInstance().sendData(nativeData.getData());
+        AiBoxServiceManager.getInstance().getDataTransmit().sendData(nativeData.getData());
         nativeData.recycle();
     }
 
-    public static WheelData getWheelData() throws DataTransmitUnbindException, RemoteException {
-        byte[] data = DataTransmitV1.getInstance().getData(WHEEL_PARAM, WHEEL_LEN_PARAM);
+    public static WheelData getWheelData() throws RemoteException, ServiceUnbindException {
+        byte[] data = AiBoxServiceManager.getInstance().getDataTransmit().getData(WHEEL_PARAM, WHEEL_LEN_PARAM);
         if (data != null && data.length > 0) {
             NativeByteBuffer nativeData = NativeByteBuffer.obtain().wrap(data);
             int type = nativeData.getByte();
@@ -99,8 +99,8 @@ public class ProtocolV1Util {
         return null;
     }
 
-    public static LocationData getLocationData() throws DataTransmitUnbindException, RemoteException {
-        byte[] data = DataTransmitV1.getInstance().getData(IOT_PARAM, IOT_LEN_PARAM);
+    public static LocationData getLocationData() throws RemoteException, ServiceUnbindException {
+        byte[] data = AiBoxServiceManager.getInstance().getDataTransmit().getData(IOT_PARAM, IOT_LEN_PARAM);
         if (data != null && data.length > 0) {
             NativeByteBuffer nativeData = NativeByteBuffer.obtain().wrap(data);
             int type = nativeData.getByte();

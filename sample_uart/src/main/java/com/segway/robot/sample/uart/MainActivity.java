@@ -8,9 +8,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.segway.robot.datatransmit.BindStateListener;
-import com.segway.robot.datatransmit.DataTransmitV1;
-import com.segway.robot.datatransmit.exception.DataTransmitUnbindException;
+import com.segway.robot.service.AiBoxServiceManager;
+import com.segway.robot.service.BindStateListener;
+import com.segway.robot.service.execption.ServiceUnbindException;
 
 public class MainActivity extends Activity {
 
@@ -27,13 +27,13 @@ public class MainActivity extends Activity {
         mTvResult = findViewById(R.id.tv_result);
 
         //bind service
-        DataTransmitV1.getInstance().bindService(this, new BindStateListener() {
+        AiBoxServiceManager.getInstance().bindService(this, new BindStateListener() {
             @Override
             public void onBind() {
                 mIsBind = true;
                 try {
-                    DataTransmitV1.getInstance().setDefaultAiSwitch(1);
-                } catch (RemoteException | DataTransmitUnbindException e) {
+                    AiBoxServiceManager.getInstance().getDataTransmit().setDefaultAiSwitch(1);
+                } catch (RemoteException | ServiceUnbindException e) {
                     e.printStackTrace();
                 }
             }
