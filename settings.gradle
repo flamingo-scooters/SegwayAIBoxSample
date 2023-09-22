@@ -1,3 +1,4 @@
+include ':sample_pm'
 include ':sample_uart'
 include ':sample_aibox'
 include ':sample_vision'
