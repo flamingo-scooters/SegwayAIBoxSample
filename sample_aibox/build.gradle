@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 27
-    buildToolsVersion '27.0.3'
+    compileSdkVersion 34
+//    buildToolsVersion '27.0.3'
 
     defaultConfig {
         applicationId "com.segway.robot.sample.aibox"
         minSdkVersion 22
-        targetSdkVersion 27
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
@@ -17,7 +17,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++11 -fexceptions -frtti -Wattributes -Werror=return-type -fvisibility=hidden -O3 -funroll-loops"
-                arguments "-DANDROID_NATIVE_API_LEVEL=android-27",
+                arguments "-DANDROID_NATIVE_API_LEVEL=android-34",
                         "-DANDROID_TOOLCHAIN_NAME=clang",
                         "-DANDROID_STL=c++_static"
             }
@@ -55,6 +55,8 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    namespace 'com.segway.robot.sample.aibox'
 }
 
 dependencies {
