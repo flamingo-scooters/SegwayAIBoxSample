@@ -72,6 +72,25 @@ public class MainActivity extends AppCompatActivity {
         mBtnStop = findViewById(R.id.btn_stop);
         checkPermission();
         resetUI();
+
+        mBtnOpenImage.setOnClickListener(v -> {
+            openImage();
+        });
+        mBtnCloseImage.setOnClickListener(v -> {
+            closeImage();
+        });
+        mBtnOpenCamera.setOnClickListener(v -> {
+            openCamera();
+        });
+        mBtnCloseCamera.setOnClickListener(v -> {
+            closeCamera();
+        });
+        mBtnStart.setOnClickListener(v -> {
+            startDetect();
+        });
+        mBtnStop.setOnClickListener(v -> {
+            stopDetect();
+        });
     }
 
     @Override
@@ -98,31 +117,6 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Please open the relevant permissions, otherwise you can not use this application normally!", Toast.LENGTH_SHORT).show();
             }
             ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, REQUEST_CODE);
-        }
-    }
-
-    public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.btn_open_image:
-                openImage();
-                break;
-            case R.id.btn_close_image:
-                closeImage();
-                break;
-            case R.id.btn_open_camera:
-                openCamera();
-                break;
-            case R.id.btn_close_camera:
-                closeCamera();
-                break;
-            case R.id.btn_start:
-                startDetect();
-                break;
-            case R.id.btn_stop:
-                stopDetect();
-                break;
-            default:
-                break;
         }
     }
 
@@ -260,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
                                     result.x2 / BITMAP_SCALE, result.y2 / BITMAP_SCALE));
                         }
                     }
-                    if(mBitmap != null) {
+                    if (mBitmap != null) {
                         int width = mBitmap.getWidth() / BITMAP_SCALE;
                         int height = mBitmap.getHeight() / BITMAP_SCALE;
                         if (width != mImageViewWidth || height != mImageViewHeight) {
