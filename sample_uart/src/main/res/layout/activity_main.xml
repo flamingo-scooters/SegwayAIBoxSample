@@ -8,44 +8,41 @@
     tools:context=".MainActivity">
 
     <LinearLayout
-        android:orientation="horizontal"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
         <EditText
             android:id="@+id/et_ai_result"
             android:layout_width="100dp"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content" />
 
         <Button
-            android:text="set ai result"
-            android:layout_marginStart="10dp"
             android:id="@+id/btn_set_ai_result"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="onClick" />
+            android:layout_marginStart="10dp"
+            android:text="set ai result" />
 
     </LinearLayout>
 
     <Button
-        android:text="get location"
-        android:layout_marginTop="10dp"
         android:id="@+id/btn_get_location"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:onClick="onClick" />
+        android:layout_marginTop="10dp"
+        android:text="get location" />
 
     <Button
-        android:layout_marginTop="10dp"
-        android:text="get speed"
         android:id="@+id/btn_get_speed"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:onClick="onClick" />
+        android:layout_marginTop="10dp"
+        android:text="get speed" />
 
     <TextView
         android:id="@+id/tv_result"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content" />
 
 </LinearLayout>
