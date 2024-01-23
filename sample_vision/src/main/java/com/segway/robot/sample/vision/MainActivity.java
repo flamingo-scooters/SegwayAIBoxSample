@@ -31,8 +31,11 @@ public class MainActivity extends Activity {
     private ImageView mCameraView;
     private Timer mTimer;
     private ImageDisplay mImageDisplay;
+    private Button mBtnBind;
+    private Button mBtnUnbind;
     private Button mBtnStartVision1;
     private Button mBtnStartVision2;
+    private Button mBtnStopVision;
     private volatile boolean mIsBind;
     private final Object mLock = new Object();
 
@@ -41,87 +44,84 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mCameraView = findViewById(R.id.iv_camera);
+        mBtnBind = findViewById(R.id.bind);
+        mBtnUnbind = findViewById(R.id.unbind);
         mBtnStartVision1 = findViewById(R.id.start_vision_1);
         mBtnStartVision2 = findViewById(R.id.start_vision_2);
-    }
+        mBtnStopVision  = findViewById(R.id.stop_vision);
 
-    public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.bind:
-                boolean ret = Vision.getInstance().bindService(this, new BindStateListener() {
-                    @Override
-                    public void onBind() {
-                        Log.d(TAG, "onBind");
-                        mIsBind = true;
-                        //Obtain internal calibration data
-                        RS2Intrinsic intrinsics = Vision.getInstance().getIntrinsics(VisionStreamType.FISH_EYE);
-                        Log.d(TAG, "intrinsics: " + intrinsics);
-                    }
+        mBtnBind.setOnClickListener(v -> {
+            boolean ret = Vision.getInstance().bindService(this, new BindStateListener() {
+                @Override
+                public void onBind() {
+                    Log.d(TAG, "onBind");
+                    mIsBind = true;
+                    //Obtain internal calibration data
+                    RS2Intrinsic intrinsics = Vision.getInstance().getIntrinsics(VisionStreamType.FISH_EYE);
+                    Log.d(TAG, "intrinsics: " + intrinsics);
+                }
 
-                    @Override
-                    public void onUnbind(String reason) {
-                        Log.d(TAG, "onUnbind");
-                        mIsBind = false;
-                    }
-                });
-                if (!ret) {
-                    Log.d(TAG, "Vision Service does not exist");
+                @Override
+                public void onUnbind(String reason) {
+                    Log.d(TAG, "onUnbind");
+                    mIsBind = false;
                 }
-                break;
-            case R.id.unbind:
-                if (mIsBind) {
-                    Vision.getInstance().stopVision(VisionStreamType.FISH_EYE);
-                    Vision.getInstance().unbindService();
-                }
-                if (mTimer != null) {
-                    mTimer.cancel();
-                    mTimer = null;
-                }
-                mBtnStartVision1.setEnabled(true);
-                mBtnStartVision2.setEnabled(true);
-                mIsBind = false;
-                break;
-            case R.id.start_vision_1:
-                if (!mIsBind) {
-                    Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                Vision.getInstance().startVision(VisionStreamType.FISH_EYE, new Vision.FrameListener() {
-                    @Override
-                    public void onNewFrame(int streamType, Frame frame) {
-                        parseFrame(frame);
-                    }
-                });
-                mBtnStartVision2.setEnabled(false);
-                break;
-            case R.id.start_vision_2:
-                if (!mIsBind) {
-                    Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                Vision.getInstance().startVision(VisionStreamType.FISH_EYE);
-                if (mTimer == null) {
-                    mTimer = new Timer();
-                }
-                mBtnStartVision1.setEnabled(false);
-                mTimer.schedule(new ImageDisplayTimerTask(), 0, 34);
-                break;
-            case R.id.stop_vision:
-                if (!mIsBind) {
-                    Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+            });
+            if (!ret) {
+                Log.d(TAG, "Vision Service does not exist");
+            }
+        });
+
+        mBtnUnbind.setOnClickListener(v -> {
+            if (mIsBind) {
                 Vision.getInstance().stopVision(VisionStreamType.FISH_EYE);
-                if (mTimer != null) {
-                    mTimer.cancel();
-                    mTimer = null;
+                Vision.getInstance().unbindService();
+            }
+            if (mTimer != null) {
+                mTimer.cancel();
+                mTimer = null;
+            }
+            mBtnStartVision1.setEnabled(true);
+            mBtnStartVision2.setEnabled(true);
+            mIsBind = false;
+        });
+
+        mBtnStartVision1.setOnClickListener(v -> {
+            if (!mIsBind) {
+                Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Vision.getInstance().startVision(VisionStreamType.FISH_EYE, new Vision.FrameListener() {
+                @Override
+                public void onNewFrame(int streamType, Frame frame) {
+                    parseFrame(frame);
                 }
-                mBtnStartVision1.setEnabled(true);
-                mBtnStartVision2.setEnabled(true);
-                break;
-            default:
-                break;
-        }
+            });
+            mBtnStartVision2.setEnabled(false);
+        });
+
+        mBtnStartVision2.setOnClickListener(v -> {
+            if (!mIsBind) {
+                Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Vision.getInstance().startVision(VisionStreamType.FISH_EYE, (streamType, frame) -> parseFrame(frame));
+            mBtnStartVision2.setEnabled(false);
+        });
+
+        mBtnStopVision.setOnClickListener(v -> {
+            if (!mIsBind) {
+                Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Vision.getInstance().stopVision(VisionStreamType.FISH_EYE);
+            if (mTimer != null) {
+                mTimer.cancel();
+                mTimer = null;
+            }
+            mBtnStartVision1.setEnabled(true);
+            mBtnStartVision2.setEnabled(true);
+        });
     }
 
     private void parseFrame(Frame frame) {
