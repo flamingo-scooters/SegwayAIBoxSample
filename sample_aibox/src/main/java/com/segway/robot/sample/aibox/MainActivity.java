@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Toast;
@@ -114,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
                 != PackageManager.PERMISSION_GRANTED) {
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission
                     .WRITE_EXTERNAL_STORAGE)) {
-                Toast.makeText(this, "Please open the relevant permissions, otherwise you can not use this application normally!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Please accept the relevant permissions, otherwise you can not use this application normally!", Toast.LENGTH_SHORT).show();
             }
             ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, REQUEST_CODE);
         }
@@ -230,6 +229,7 @@ public class MainActivity extends AppCompatActivity {
         });
         if (!ret) {
             Log.d(TAG, "Vision Service does not exist");
+            Vision.getInstance().unbindService();
         }
     }
 
@@ -280,6 +280,7 @@ public class MainActivity extends AppCompatActivity {
             while (mIsImageStarted) {
                 synchronized (mBitmapLock) {
                     mBitmap = BitmapFactory.decodeFile(LOCAL_IMAGE_PATH);
+//                    mBitmap = BitmapFactory.decodeResource(getResources(), R.raw.fashion_sample);
                     if (mBitmap == null) {
                         runOnUiThread(new Runnable() {
                             @Override
