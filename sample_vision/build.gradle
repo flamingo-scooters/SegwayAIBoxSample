@@ -33,22 +33,9 @@ android {
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
-//    implementation 'com.segway.robot:vision:0.7.870'
-//    implementation 'com.segway.robot:visionsdk:0.6.1149'
-//    implementation 'com.segway.robot:visionsdk:0.6.547'
-
-    implementation 'com.android.support:appcompat-v7:27.1.1'
-    implementation 'com.segway.robot:visionsdk:0.6.1149'
-//    implementation 'com.segway.robot:speech-sdk:0.5.329'
-//    implementation 'com.segway.robot:headsdk:0.6.814'
-//    implementation 'com.segway.robot:basesdk:0.6.814'
-//    implementation 'com.segway.robot:sensorsdk:0.6.814'
-//    implementation 'com.segway.robot:robot-connectivity-sdk:0.5.122'
-//    implementation 'com.segway.robot:mobile-connectivity-sdk:0.5.122'
-//    implementation 'com.segway.robot:emoji:0.1.29'
-//    implementation 'com.segway.robot:support-lib:1.1.2'
+    implementation 'com.segway.robot:vision:0.7.870'
 
 }

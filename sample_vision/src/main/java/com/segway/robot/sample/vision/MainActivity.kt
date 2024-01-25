@@ -9,14 +9,13 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
-import com.segway.robot.sdk.base.bind.ServiceBinder
+import com.segway.robot.sdk.vision.BindStateListener
 import com.segway.robot.sdk.vision.Vision
 import com.segway.robot.sdk.vision.calibration.RS2Intrinsic
 import com.segway.robot.sdk.vision.frame.Frame
 import com.segway.robot.sdk.vision.stream.PixelFormat
 import com.segway.robot.sdk.vision.stream.Resolution
-import com.segway.robot.sdk.vision.stream.StreamType
-import com.segway.robot.sdk.vision.stream.StreamType.FISH_EYE
+import com.segway.robot.sdk.vision.stream.VisionStreamType
 import java.util.Timer
 import java.util.TimerTask
 
@@ -48,13 +47,13 @@ class MainActivity : Activity() {
         mBtnStartVision2 = findViewById<Button>(R.id.start_vision_2)
         mBtnStopVision = findViewById<Button>(R.id.stop_vision)
         mBtnBind?.setOnClickListener { v: View? ->
-            val ret = Vision.getInstance().bindService(this, object : ServiceBinder.BindStateListener {
+            val ret = Vision.getInstance().bindService(this, object : BindStateListener {
                 override fun onBind() {
                     Log.d(TAG, "onBind")
                     mIsBind = true
                     //Obtain internal calibration data
-//                    val intrinsics: RS2Intrinsic = Vision.getInstance().getIntrinsics(FISH_EYE)
-//                    Log.d(TAG, "intrinsics: $intrinsics")
+                    val intrinsics: RS2Intrinsic = Vision.getInstance().getIntrinsics(VisionStreamType.FISH_EYE)
+                    Log.d(TAG, "intrinsics: $intrinsics")
                 }
 
                 override fun onUnbind(reason: String?) {
@@ -68,7 +67,7 @@ class MainActivity : Activity() {
         }
         mBtnUnbind?.setOnClickListener { v: View? ->
             if (mIsBind) {
-                Vision.getInstance().stopListenFrame(FISH_EYE)
+                Vision.getInstance().stopVision(VisionStreamType.FISH_EYE)
                 Vision.getInstance().unbindService()
             }
             if (mTimer != null) {
@@ -84,7 +83,7 @@ class MainActivity : Activity() {
                 Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            Vision.getInstance().startListenFrame(FISH_EYE, Vision.FrameListener { streamType, frame -> parseFrame(frame) })
+            Vision.getInstance().startVision(VisionStreamType.FISH_EYE, Vision.FrameListener { streamType, frame -> parseFrame(frame) })
             mBtnStartVision2?.isEnabled = false
         }
         mBtnStartVision2?.setOnClickListener { v: View? ->
@@ -92,7 +91,7 @@ class MainActivity : Activity() {
                 Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            Vision.getInstance().startListenFrame(FISH_EYE) { streamType, frame -> parseFrame(frame) }
+            Vision.getInstance().startVision(VisionStreamType.FISH_EYE) { streamType, frame -> parseFrame(frame) }
             mBtnStartVision2?.isEnabled = false
         }
         mBtnStopVision!!.setOnClickListener { v: View? ->
@@ -100,7 +99,7 @@ class MainActivity : Activity() {
                 Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            Vision.getInstance().stopListenFrame(FISH_EYE)
+            Vision.getInstance().stopVision(VisionStreamType.FISH_EYE)
             if (mTimer != null) {
                 mTimer!!.cancel()
                 mTimer = null
@@ -120,9 +119,7 @@ class MainActivity : Activity() {
                 mImageDisplay = ImageDisplay(width, height)
             }
             val pixelFormat = frame.info.pixelFormat
-            if (
-//                    pixelFormat == PixelFormat.YUV420 ||
-                    pixelFormat == PixelFormat.YV12) {
+            if (pixelFormat == PixelFormat.YUV420 || pixelFormat == PixelFormat.YV12) {
                 val limit = frame.byteBuffer.limit()
                 val buff = ByteArray(limit)
                 frame.byteBuffer.position(0)
@@ -137,29 +134,29 @@ class MainActivity : Activity() {
 
     protected override fun onDestroy() {
         super.onDestroy()
-        Vision.getInstance().stopListenFrame(FISH_EYE)
+        Vision.getInstance().stopVision(VisionStreamType.FISH_EYE)
         if (mTimer != null) {
             mTimer!!.cancel()
             mTimer = null
         }
     }
 
-//    internal inner class ImageDisplayTimerTask : TimerTask() {
-//        override fun run() {
-//            synchronized(mLock) {
-//                var frame: Frame? = null
-//                try {
-//                    frame = Vision.getInstance().getLatestFrame(VisionStreamType.FISH_EYE)
-//                } catch (e: Exception) {
-//                    Log.e(TAG, "IllegalArgumentException  " + e.message)
-//                }
-//                if (frame != null) {
-//                    parseFrame(frame)
-//                    Vision.getInstance().returnFrame(frame)
-//                }
-//            }
-//        }
-//    }
+    internal inner class ImageDisplayTimerTask : TimerTask() {
+        override fun run() {
+            synchronized(mLock) {
+                var frame: Frame? = null
+                try {
+                    frame = Vision.getInstance().getLatestFrame(VisionStreamType.FISH_EYE)
+                } catch (e: Exception) {
+                    Log.e(TAG, "IllegalArgumentException  " + e.message)
+                }
+                if (frame != null) {
+                    parseFrame(frame)
+                    Vision.getInstance().returnFrame(frame)
+                }
+            }
+        }
+    }
 
     internal inner class ImageDisplay(width: Int, height: Int) : Runnable {
         var mWidth: Int
