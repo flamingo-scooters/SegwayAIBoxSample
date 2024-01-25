@@ -62,7 +62,9 @@ class MainActivity : Activity() {
                 }
             })
             if (!ret) {
-                Log.d(TAG, "Vision Service does not exist")
+                val message = "Vision Service does not exist on this device"
+                Log.d(TAG, message)
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
             }
         }
         mBtnUnbind?.setOnClickListener { v: View? ->
@@ -83,7 +85,7 @@ class MainActivity : Activity() {
                 Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            Vision.getInstance().startVision(VisionStreamType.FISH_EYE, Vision.FrameListener { streamType, frame -> parseFrame(frame) })
+            Vision.getInstance().startVision(VisionStreamType.FISH_EYE, { streamType, frame -> parseFrame(frame) })
             mBtnStartVision2?.isEnabled = false
         }
         mBtnStartVision2?.setOnClickListener { v: View? ->
@@ -91,8 +93,12 @@ class MainActivity : Activity() {
                 Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            Vision.getInstance().startVision(VisionStreamType.FISH_EYE) { streamType, frame -> parseFrame(frame) }
-            mBtnStartVision2?.isEnabled = false
+            Vision.getInstance().startVision(VisionStreamType.FISH_EYE)
+            if (mTimer == null) {
+                mTimer = Timer()
+            }
+            mBtnStartVision1?.isEnabled = false
+            mTimer?.schedule(ImageDisplayTimerTask(), 0, 34)
         }
         mBtnStopVision?.setOnClickListener { v: View? ->
             if (!mIsBind) {

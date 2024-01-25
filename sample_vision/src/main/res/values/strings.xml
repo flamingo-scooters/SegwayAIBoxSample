@@ -3,8 +3,8 @@
     <string name="bind">bind service</string>
     <string name="unbind">unbind service</string>
     <string name="start_vision">start vision</string>
-    <string name="stop_vision">stop vision</string>
-    <string name="start_vision_way_other">start vision 2</string>
+    <string name="stop_vision">stop vision w/ service listener</string>
+    <string name="start_vision_way_other">start vision w/ periodic frame</string>
     <string name="stop_vision_way_other">stop vision 2</string>
     <string name="intrinsics">Calibration data</string>
 </resources>
