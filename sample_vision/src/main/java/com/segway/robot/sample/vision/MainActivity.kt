@@ -37,7 +37,7 @@ class MainActivity : Activity() {
     private var mIsBind = false
     private val mLock = Any()
 
-    protected override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         mCameraView = findViewById<ImageView>(R.id.iv_camera)
@@ -71,7 +71,7 @@ class MainActivity : Activity() {
                 Vision.getInstance().unbindService()
             }
             if (mTimer != null) {
-                mTimer!!.cancel()
+                mTimer?.cancel()
                 mTimer = null
             }
             mBtnStartVision1?.isEnabled = true
@@ -94,14 +94,14 @@ class MainActivity : Activity() {
             Vision.getInstance().startVision(VisionStreamType.FISH_EYE) { streamType, frame -> parseFrame(frame) }
             mBtnStartVision2?.isEnabled = false
         }
-        mBtnStopVision!!.setOnClickListener { v: View? ->
+        mBtnStopVision?.setOnClickListener { v: View? ->
             if (!mIsBind) {
                 Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             Vision.getInstance().stopVision(VisionStreamType.FISH_EYE)
             if (mTimer != null) {
-                mTimer!!.cancel()
+                mTimer?.cancel()
                 mTimer = null
             }
             mBtnStartVision1?.isEnabled = true
@@ -132,11 +132,11 @@ class MainActivity : Activity() {
         runOnUiThread(mImageDisplay)
     }
 
-    protected override fun onDestroy() {
+    override fun onDestroy() {
         super.onDestroy()
         Vision.getInstance().stopVision(VisionStreamType.FISH_EYE)
         if (mTimer != null) {
-            mTimer!!.cancel()
+            mTimer?.cancel()
             mTimer = null
         }
     }
@@ -159,10 +159,10 @@ class MainActivity : Activity() {
     }
 
     internal inner class ImageDisplay(width: Int, height: Int) : Runnable {
-        var mWidth: Int
-        var mHeight: Int
-        var setParamsFlag = false
-        var zoom = 0.5f
+        private var mWidth: Int
+        private var mHeight: Int
+        private var setParamsFlag = false
+        private var zoom = 0.5f
 
         init {
             mWidth = (width * zoom).toInt()
@@ -171,13 +171,13 @@ class MainActivity : Activity() {
 
         override fun run() {
             if (!setParamsFlag) {
-                val params: ViewGroup.LayoutParams = mCameraView!!.layoutParams
-                params.width = mWidth
-                params.height = mHeight
-                mCameraView!!.layoutParams = params
+                val params: ViewGroup.LayoutParams? = mCameraView?.layoutParams
+                params?.width = mWidth
+                params?.height = mHeight
+                mCameraView?.layoutParams = params
                 setParamsFlag = true
             }
-            mCameraView!!.setImageBitmap(mBitmap)
+            mCameraView?.setImageBitmap(mBitmap)
         }
     }
 
