@@ -1,415 +1,379 @@
-package com.segway.robot.sample.aibox;
+package com.segway.robot.sample.aibox
 
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.RectF;
-import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.Toast;
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.RectF
+import android.os.Bundle
+import android.support.v4.app.ActivityCompat
+import android.support.v7.app.AppCompatActivity
+import android.util.Log
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.Toast
+import com.segway.robot.sdk.vision.BindStateListener
+import com.segway.robot.sdk.vision.Vision
+import com.segway.robot.sdk.vision.stream.PixelFormat
+import com.segway.robot.sdk.vision.stream.Resolution
+import com.segway.robot.sdk.vision.stream.VisionStreamType
+import java.nio.ByteBuffer
+import kotlin.concurrent.Volatile
+import kotlin.math.roundToInt
 
-import com.segway.robot.sdk.vision.BindStateListener;
-import com.segway.robot.sdk.vision.Vision;
-import com.segway.robot.sdk.vision.calibration.RS2Intrinsic;
-import com.segway.robot.sdk.vision.frame.Frame;
-import com.segway.robot.sdk.vision.stream.PixelFormat;
-import com.segway.robot.sdk.vision.stream.Resolution;
-import com.segway.robot.sdk.vision.stream.VisionStreamType;
+class MainActivity() : AppCompatActivity() {
+    private var mImageView: VisionImageView? = null
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
+    @Volatile
+    private var mIsBind = false
 
-public class MainActivity extends AppCompatActivity {
+    @Volatile
+    private var mIsDetecting = false
 
-    private static final String TAG = MainActivity.class.getSimpleName();
-    private static final String LOCAL_IMAGE_PATH = "sdcard/apple.jpeg";
-    private static final int REQUEST_CODE = 1;
-    private static String[] PERMISSIONS_STORAGE = {"android.permission.READ_EXTERNAL_STORAGE",
-            "android.permission.WRITE_EXTERNAL_STORAGE"};
-    private static final int BITMAP_SCALE = 4;
-    private VisionImageView mImageView;
-    private volatile boolean mIsBind;
-    private volatile boolean mIsDetecting;
-    private volatile boolean mIsImageStarted;
-    private volatile boolean mIsCameraStarted;
-    private Bitmap mBitmap;
-    private Thread mVisionWorkThread;
-    private Thread mImageWorkThread;
-    private final Object mBitmapLock = new Object();
-    private Button mBtnOpenImage;
-    private Button mBtnCloseImage;
-    private Button mBtnOpenCamera;
-    private Button mBtnCloseCamera;
-    private Button mBtnStart;
-    private Button mBtnStop;
-    private ByteBuffer mData;
-    private DetectedResult[] mDetectedResults;
-    private List<RectF> mRectList = new ArrayList<>();
-    private int mImageViewWidth;
-    private int mImageViewHeight;
+    @Volatile
+    private var mIsImageStarted = false
 
-    static {
-        System.loadLibrary("vision_aibox");
+    @Volatile
+    private var mIsCameraStarted = false
+    private var mBitmap: Bitmap? = null
+    private var mVisionWorkThread: Thread? = null
+    private var mImageWorkThread: Thread? = null
+    private val mBitmapLock = Any()
+    private var mBtnOpenImage: Button? = null
+    private var mBtnCloseImage: Button? = null
+    private var mBtnOpenCamera: Button? = null
+    private var mBtnCloseCamera: Button? = null
+    private var mBtnStart: Button? = null
+    private var mBtnStop: Button? = null
+    private var mData: ByteBuffer? = null
+    private var mDetectedResults: Array<DetectedResult>? = null
+    private val mRectList: MutableList<RectF> = ArrayList()
+    private var mImageViewWidth = 0
+    private var mImageViewHeight = 0
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+        mImageView = findViewById(R.id.image)
+        mBtnOpenImage = findViewById(R.id.btn_open_image)
+        mBtnCloseImage = findViewById(R.id.btn_close_image)
+        mBtnOpenCamera = findViewById(R.id.btn_open_camera)
+        mBtnCloseCamera = findViewById(R.id.btn_close_camera)
+        mBtnStart = findViewById(R.id.btn_start)
+        mBtnStop = findViewById(R.id.btn_stop)
+        checkPermission()
+        resetUI()
+        mBtnOpenImage?.setOnClickListener { openImage() }
+        mBtnCloseImage?.setOnClickListener { closeImage() }
+        mBtnOpenCamera?.setOnClickListener { openCamera() }
+        mBtnCloseCamera?.setOnClickListener { closeCamera() }
+        mBtnStart?.setOnClickListener { startDetect() }
+        mBtnStop?.setOnClickListener { stopDetect() }
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        mImageView = findViewById(R.id.image);
-        mBtnOpenImage = findViewById(R.id.btn_open_image);
-        mBtnCloseImage = findViewById(R.id.btn_close_image);
-        mBtnOpenCamera = findViewById(R.id.btn_open_camera);
-        mBtnCloseCamera = findViewById(R.id.btn_close_camera);
-        mBtnStart = findViewById(R.id.btn_start);
-        mBtnStop = findViewById(R.id.btn_stop);
-        checkPermission();
-        resetUI();
-
-        mBtnOpenImage.setOnClickListener(v -> {
-            openImage();
-        });
-        mBtnCloseImage.setOnClickListener(v -> {
-            closeImage();
-        });
-        mBtnOpenCamera.setOnClickListener(v -> {
-            openCamera();
-        });
-        mBtnCloseCamera.setOnClickListener(v -> {
-            closeCamera();
-        });
-        mBtnStart.setOnClickListener(v -> {
-            startDetect();
-        });
-        mBtnStop.setOnClickListener(v -> {
-            stopDetect();
-        });
+    override fun onDestroy() {
+        super.onDestroy()
+        closeImage()
+        closeCamera()
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        closeImage();
-        closeCamera();
+    private fun resetUI() {
+        mBtnOpenCamera?.isEnabled = true
+        mBtnOpenImage?.isEnabled = true
+        mBtnStart?.isEnabled = false
+        mBtnStop?.isEnabled = false
+        mBtnCloseCamera?.isEnabled = false
+        mBtnCloseImage?.isEnabled = false
     }
 
-    private void resetUI() {
-        mBtnOpenCamera.setEnabled(true);
-        mBtnOpenImage.setEnabled(true);
-        mBtnStart.setEnabled(false);
-        mBtnStop.setEnabled(false);
-        mBtnCloseCamera.setEnabled(false);
-        mBtnCloseImage.setEnabled(false);
-    }
-
-    private void checkPermission() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission
-                    .WRITE_EXTERNAL_STORAGE)) {
-                Toast.makeText(this, "Please accept the relevant permissions, otherwise you can not use this application normally!", Toast.LENGTH_SHORT).show();
+    private fun checkPermission() {
+        if ((ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED)) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                Toast.makeText(this, "Please accept the relevant permissions, otherwise you can not use this application normally!", Toast.LENGTH_SHORT).show()
             }
-            ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, REQUEST_CODE);
+            ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, REQUEST_CODE)
         }
     }
 
-    private synchronized void openImage() {
-
+    @Synchronized
+    private fun openImage() {
         if (mIsImageStarted) {
-            return;
+            return
         }
-
-        mBtnOpenCamera.setEnabled(false);
-
-        mIsImageStarted = true;
-        mImageWorkThread = new ImageWorkThread();
-        mImageWorkThread.start();
-
-        mBtnStart.setEnabled(true);
-        mBtnCloseImage.setEnabled(true);
-        mBtnOpenImage.setEnabled(false);
-
+        mBtnOpenCamera?.isEnabled = false
+        mIsImageStarted = true
+        mImageWorkThread = ImageWorkThread()
+        mImageWorkThread?.start()
+        mBtnStart?.isEnabled = true
+        mBtnCloseImage?.isEnabled = true
+        mBtnOpenImage?.isEnabled = false
     }
 
-    private synchronized void closeImage() {
+    @Synchronized
+    private fun closeImage() {
         if (mIsDetecting) {
-            stopDetect();
+            stopDetect()
         }
-        mIsImageStarted = false;
+        mIsImageStarted = false
         if (mVisionWorkThread != null) {
             try {
-                mImageWorkThread.interrupt();
-                mImageWorkThread.join();
-            } catch (Exception e) {
-                e.printStackTrace();
+                mImageWorkThread?.interrupt()
+                mImageWorkThread?.join()
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-            mImageWorkThread = null;
+            mImageWorkThread = null
         }
-        resetUI();
+        resetUI()
     }
 
-    private synchronized void openCamera() {
-        mIsCameraStarted = true;
-        mBtnOpenImage.setEnabled(false);
-        bindAndStartVision();
+    @Synchronized
+    private fun openCamera() {
+        mIsCameraStarted = true
+        mBtnOpenImage?.isEnabled = false
+        bindAndStartVision()
     }
 
-    private synchronized void closeCamera() {
-        mIsCameraStarted = false;
+    @Synchronized
+    private fun closeCamera() {
+        mIsCameraStarted = false
         if (mIsDetecting) {
-            stopDetect();
+            stopDetect()
         }
-        unbindAndStopVision();
+        unbindAndStopVision()
         if (mVisionWorkThread != null) {
             try {
-                mVisionWorkThread.interrupt();
-                mVisionWorkThread.join();
-            } catch (Exception e) {
-                e.printStackTrace();
+                mVisionWorkThread?.interrupt()
+                mVisionWorkThread?.join()
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-            mVisionWorkThread = null;
+            mVisionWorkThread = null
         }
-        resetUI();
+        resetUI()
     }
 
-    private synchronized void startDetect() {
+    @Synchronized
+    private fun startDetect() {
         if (mIsDetecting) {
-            return;
+            return
         }
-        mIsDetecting = true;
-
-        mBtnStop.setEnabled(true);
-        mBtnStart.setEnabled(false);
+        mIsDetecting = true
+        mBtnStop?.isEnabled = true
+        mBtnStart?.isEnabled = false
     }
 
-
-    private synchronized void stopDetect() {
-        mIsDetecting = false;
-
-        mBtnStop.setEnabled(false);
-        mBtnStart.setEnabled(true);
+    @Synchronized
+    private fun stopDetect() {
+        mIsDetecting = false
+        mBtnStop?.isEnabled = false
+        mBtnStart?.isEnabled = true
     }
 
-    private void bindAndStartVision() {
+    private fun bindAndStartVision() {
         //bind Vision Service
-        boolean ret = Vision.getInstance().bindService(this, new BindStateListener() {
-            @Override
-            public void onBind() {
-                Log.d(TAG, "onBind");
-                mIsBind = true;
+        val ret = Vision.getInstance().bindService(this, object : BindStateListener {
+            override fun onBind() {
+                Log.d(TAG, "onBind")
+                mIsBind = true
                 try {
                     //Obtain internal calibration data
-                    RS2Intrinsic intrinsics = Vision.getInstance().getIntrinsics(VisionStreamType.FISH_EYE);
-                    Log.d(TAG, "intrinsics: " + intrinsics);
-                    Vision.getInstance().startVision(VisionStreamType.FISH_EYE);
-
-                    mVisionWorkThread = new VisionWorkThread();
-                    mVisionWorkThread.start();
-                    mBtnOpenCamera.setEnabled(false);
-                    mBtnStart.setEnabled(true);
-                    mBtnCloseCamera.setEnabled(true);
-
-                } catch (Exception e) {
-                    Log.d(TAG, "error:", e);
+                    val intrinsics = Vision.getInstance().getIntrinsics(VisionStreamType.FISH_EYE)
+                    Log.d(TAG, "intrinsics: $intrinsics")
+                    Vision.getInstance().startVision(VisionStreamType.FISH_EYE)
+                    mVisionWorkThread = VisionWorkThread()
+                    mVisionWorkThread?.start()
+                    mBtnOpenCamera?.isEnabled = false
+                    mBtnStart?.isEnabled = true
+                    mBtnCloseCamera?.isEnabled = true
+                } catch (e: Exception) {
+                    Log.d(TAG, "error:", e)
                 }
             }
 
-            @Override
-            public void onUnbind(String reason) {
-                Log.d(TAG, "onUnbind");
-                mIsBind = false;
-                mBtnOpenCamera.setEnabled(true);
+            override fun onUnbind(reason: String) {
+                Log.d(TAG, "onUnbind")
+                mIsBind = false
+                mBtnOpenCamera?.isEnabled = true
             }
-        });
+        })
         if (!ret) {
-            Log.d(TAG, "Vision Service does not exist");
-            Vision.getInstance().unbindService();
+            Log.d(TAG, "Vision Service does not exist")
+            Vision.getInstance().unbindService()
         }
     }
 
-    private void unbindAndStopVision() {
+    private fun unbindAndStopVision() {
         try {
-            Vision.getInstance().stopVision(VisionStreamType.FISH_EYE);
-        } catch (Exception e) {
-            Log.d(TAG, "error:", e);
+            Vision.getInstance().stopVision(VisionStreamType.FISH_EYE)
+        } catch (e: Exception) {
+            Log.d(TAG, "error:", e)
         }
-        Vision.getInstance().unbindService();
+        Vision.getInstance().unbindService()
     }
 
-    private void showImage() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (mBitmapLock) {
-                    mRectList.clear();
-                    if (mDetectedResults != null) {
-                        for (DetectedResult result : mDetectedResults) {
-                            mRectList.add(new RectF(result.x1 / BITMAP_SCALE, result.y1 / BITMAP_SCALE,
-                                    result.x2 / BITMAP_SCALE, result.y2 / BITMAP_SCALE));
-                        }
+    private fun showImage() {
+        runOnUiThread(Runnable {
+            synchronized(mBitmapLock) {
+                mRectList.clear()
+                val results = mDetectedResults
+                if (results != null) {
+                    for (result: DetectedResult in results) {
+                        mRectList.add(RectF(result.x1 / BITMAP_SCALE, result.y1 / BITMAP_SCALE,
+                                result.x2 / BITMAP_SCALE, result.y2 / BITMAP_SCALE))
                     }
-                    if (mBitmap != null) {
-                        int width = mBitmap.getWidth() / BITMAP_SCALE;
-                        int height = mBitmap.getHeight() / BITMAP_SCALE;
-                        if (width != mImageViewWidth || height != mImageViewHeight) {
-                            mImageViewWidth = width;
-                            mImageViewHeight = height;
-                            ViewGroup.LayoutParams layoutParams = mImageView.getLayoutParams();
-                            layoutParams.width = mImageViewWidth;
-                            layoutParams.height = mImageViewHeight;
-                            mImageView.setLayoutParams(layoutParams);
-
-                        }
-                    }
-                    mImageView.mark(mRectList);
-                    mImageView.setImageBitmap(mBitmap);
                 }
+                if (mBitmap != null) {
+                    val width: Int? = mBitmap?.width?.div(BITMAP_SCALE)
+                    val height: Int? = mBitmap?.height?.div(BITMAP_SCALE)
+                    if (width != null && height != null && (width != mImageViewWidth || height != mImageViewHeight)) {
+                        mImageViewWidth = width
+                        mImageViewHeight = height
+                        val layoutParams: ViewGroup.LayoutParams? = mImageView?.layoutParams
+                        if (layoutParams != null) {
+                            layoutParams.width = mImageViewWidth
+                            layoutParams.height = mImageViewHeight
+                            mImageView?.layoutParams = layoutParams
+                        }
+                    }
+                }
+                mImageView?.mark(mRectList)
+                mImageView?.setImageBitmap(mBitmap)
             }
-        });
+        })
     }
 
-    class ImageWorkThread extends Thread {
-        @Override
-        public void run() {
+    internal inner class ImageWorkThread : Thread() {
+        override fun run() {
             while (mIsImageStarted) {
-                synchronized (mBitmapLock) {
-                    mBitmap = BitmapFactory.decodeFile(LOCAL_IMAGE_PATH);
-//                    mBitmap = BitmapFactory.decodeResource(getResources(), R.raw.fashion_sample);
-                    if (mBitmap == null) {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(MainActivity.this, "The picture does not exist!", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                        break;
-                    }
-                    if (mIsDetecting) {
-                        int size = mBitmap.getByteCount();
-                        if (mData == null || mData.capacity() != size) {
-                            mData = ByteBuffer.allocateDirect(size);
+                synchronized(mBitmapLock) {
+                    mBitmap = BitmapFactory.decodeFile(LOCAL_IMAGE_PATH)
+                    //                    mBitmap = BitmapFactory.decodeResource(getResources(), R.raw.fashion_sample);
+                    val currentBitmap = mBitmap
+                    if (currentBitmap == null) {
+                        runOnUiThread { Toast.makeText(this@MainActivity, "The picture does not exist!", Toast.LENGTH_SHORT).show() }
+                    } else if (mIsDetecting) {
+                        val size: Int = currentBitmap.byteCount
+                        if (mData == null || mData?.capacity() != size) {
+                            mData = ByteBuffer.allocateDirect(size)
                         }
-                        mData.rewind();
-                        Bitmap bitmap = mBitmap.copy(mBitmap.getConfig(), true);
-                        mBitmap.copyPixelsToBuffer(mData);
-                        mBitmap = bitmap;
-                        mDetectedResults = VisionNative.nativeDetect(mData, PixelFormat.RGBA8888, mBitmap.getWidth(), mBitmap.getHeight());
+                        mData?.rewind()
+                        val bitmap: Bitmap? = currentBitmap.copy(currentBitmap.config, true)
+                        mBitmap?.copyPixelsToBuffer(mData!!)
+                        mBitmap = bitmap
+                        mDetectedResults = VisionNative.nativeDetect(mData, PixelFormat.RGBA8888, mBitmap!!.width, mBitmap!!.height)
                     } else {
-                        mDetectedResults = null;
+                        mDetectedResults = null
                     }
                 }
-                showImage();
+                showImage()
                 try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    sleep(100)
+                } catch (e: InterruptedException) {
+                    e.printStackTrace()
                 }
             }
-            clearBitmap();
+            clearBitmap()
         }
     }
 
-    private void clearBitmap() {
-        synchronized (mBitmapLock) {
-            mBitmap = null;
-            mDetectedResults = null;
+    private fun clearBitmap() {
+        synchronized(mBitmapLock) {
+            mBitmap = null
+            mDetectedResults = null
         }
-        showImage();
+        showImage()
     }
 
-    class VisionWorkThread extends Thread {
-        @Override
-        public void run() {
+    internal inner class VisionWorkThread : Thread() {
+        override fun run() {
             while (mIsCameraStarted && mIsBind) {
-                long startTs = System.currentTimeMillis();
+                val startTs = System.currentTimeMillis()
                 try {
-                    Frame frame = Vision.getInstance().getLatestFrame(VisionStreamType.FISH_EYE);
-                    Log.d(TAG, "ts: " + frame.getInfo().getPlatformTimeStamp() + "  " + frame.getInfo().getIMUTimeStamp());
-                    int resolution = frame.getInfo().getResolution();
-                    int width = Resolution.getWidth(resolution);
-                    int height = Resolution.getHeight(resolution);
-                    synchronized (mBitmapLock) {
+                    val frame = Vision.getInstance().getLatestFrame(VisionStreamType.FISH_EYE)
+                    Log.d(TAG, "ts: " + frame.info.platformTimeStamp + "  " + frame.info.imuTimeStamp)
+                    val resolution = frame.info.resolution
+                    val width = Resolution.getWidth(resolution)
+                    val height = Resolution.getHeight(resolution)
+                    synchronized(mBitmapLock) {
                         if (mBitmap == null) {
-                            mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+                            mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                         }
                     }
-                    int pixelFormat = frame.getInfo().getPixelFormat();
+                    val pixelFormat = frame.info.pixelFormat
                     if (pixelFormat == PixelFormat.YUV420 || pixelFormat == PixelFormat.YV12) {
-                        int limit = frame.getByteBuffer().limit();
-
+                        val limit = frame.byteBuffer.limit()
                         if (mIsDetecting) {
-                            if (mData == null || mData.capacity() != limit) {
-                                mData = ByteBuffer.allocateDirect(limit);
+                            if (mData == null || mData?.capacity() != limit) {
+                                mData = ByteBuffer.allocateDirect(limit)
                             }
-                            frame.getByteBuffer().position(0);
-                            mData.rewind();
-                            mData.put(frame.getByteBuffer());
-                            synchronized (mBitmapLock) {
-                                mDetectedResults = VisionNative.nativeDetect(mData, pixelFormat, width, height);
-                            }
+                            frame.byteBuffer.position(0)
+                            mData?.rewind()
+                            mData?.put(frame.byteBuffer)
+                            synchronized(mBitmapLock) { mDetectedResults = VisionNative.nativeDetect(mData, pixelFormat, width, height) }
                         } else {
-                            synchronized (mBitmapLock) {
-                                mDetectedResults = null;
-                            }
+                            synchronized(mBitmapLock) { mDetectedResults = null }
                         }
-                        byte[] buff = new byte[limit];
-                        frame.getByteBuffer().position(0);
-                        frame.getByteBuffer().get(buff);
-                        synchronized (mBitmapLock) {
-                            yuv2RGBBitmap(buff, mBitmap, width, height);
-                        }
-
+                        val buff = ByteArray(limit)
+                        frame.byteBuffer.position(0)
+                        frame.byteBuffer[buff]
+                        synchronized(mBitmapLock) { yuv2RGBBitmap(buff, mBitmap, width, height) }
                     } else {
-                        Log.d(TAG, "An unsupported format");
+                        Log.d(TAG, "An unsupported format")
                     }
                     if (mBitmap != null) {
-                        showImage();
+                        showImage()
                     }
-                    Vision.getInstance().returnFrame(frame);
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    Vision.getInstance().returnFrame(frame)
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-                long endTs = System.currentTimeMillis();
-                long interval = 100 - (endTs - startTs);
+                val endTs = System.currentTimeMillis()
+                val interval = 100 - (endTs - startTs)
                 if (interval > 0) {
                     try {
-                        Thread.sleep(interval);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        sleep(interval)
+                    } catch (e: InterruptedException) {
+                        e.printStackTrace()
                     }
                 }
             }
-
-            clearBitmap();
+            clearBitmap()
         }
     }
 
-    private void yuv2RGBBitmap(byte[] data, Bitmap bitmap, int width, int height) {
-        int frameSize = width * height;
-        int[] rgba = new int[frameSize];
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                int y = (0xff & ((int) data[i * width + j]));
-                int v = (0xff & ((int) data[frameSize + (i >> 1) * width + (j & ~1) + 0]));
-
-                int u = (0xff & ((int) data[frameSize + (i >> 1) * width + (j & ~1) + 1]));
-
-                y = y < 16 ? 16 : y;
-                int r = Math.round(1.164f * (y - 16) + 1.596f * (v - 128));
-                int g = Math.round(1.164f * (y - 16) - 0.813f * (v - 128) - 0.391f * (u - 128));
-                int b = Math.round(1.164f * (y - 16) + 2.018f * (u - 128));
-                r = r < 0 ? 0 : (r > 255 ? 255 : r);
-                g = g < 0 ? 0 : (g > 255 ? 255 : g);
-                b = b < 0 ? 0 : (b > 255 ? 255 : b);
-                rgba[i * width + j] = 0xff000000 + (b << 16) + (g << 8) + r;
+    private fun yuv2RGBBitmap(data: ByteArray, bitmap: Bitmap?, width: Int, height: Int) {
+        val frameSize = width * height
+        val rgba = IntArray(frameSize)
+        for (i in 0 until height) {
+            for (j in 0 until width) {
+                var y = (0xff and (data[i * width + j].toInt()))
+                val v = (0xff and (data[frameSize + ((i shr 1) * width) + (j and 1.inv()) + 0].toInt()))
+                val u = (0xff and (data[frameSize + ((i shr 1) * width) + (j and 1.inv()) + 1].toInt()))
+                y = if (y < 16) 16 else y
+                var r: Int = (1.164f * (y - 16) + 1.596f * (v - 128)).roundToInt()
+                var g: Int = ((1.164f * (y - 16)) - (0.813f * (v - 128)) - (0.391f * (u - 128))).roundToInt()
+                var b: Int = (1.164f * (y - 16) + 2.018f * (u - 128)).roundToInt()
+                r = if (r < 0) 0 else (if (r > 255) 255 else r)
+                g = if (g < 0) 0 else (if (g > 255) 255 else g)
+                b = if (b < 0) 0 else (if (b > 255) 255 else b)
+                rgba[i * width + j] = -0x1000000 + (b shl 16) + (g shl 8) + r
             }
         }
-        bitmap.setPixels(rgba, 0, width, 0, 0, width, height);
+        bitmap?.setPixels(rgba, 0, width, 0, 0, width, height)
+    }
+
+    companion object {
+        private val TAG = MainActivity::class.java.simpleName
+        private const val LOCAL_IMAGE_PATH = "sdcard/apple.jpeg"
+        private const val REQUEST_CODE = 1
+        private val PERMISSIONS_STORAGE = arrayOf("android.permission.READ_EXTERNAL_STORAGE",
+                "android.permission.WRITE_EXTERNAL_STORAGE")
+        private const val BITMAP_SCALE = 4
+
+        init {
+            System.loadLibrary("vision_aibox")
+        }
     }
 }
