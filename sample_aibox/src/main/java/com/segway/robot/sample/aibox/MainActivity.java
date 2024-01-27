@@ -6,10 +6,11 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.RectF;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.PersistableBundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Toast;
@@ -22,9 +23,17 @@ import com.segway.robot.sdk.vision.stream.PixelFormat;
 import com.segway.robot.sdk.vision.stream.Resolution;
 import com.segway.robot.sdk.vision.stream.VisionStreamType;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -39,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private volatile boolean mIsDetecting;
     private volatile boolean mIsImageStarted;
     private volatile boolean mIsCameraStarted;
+    private volatile boolean shouldRecord = false;
     private Bitmap mBitmap;
     private Thread mVisionWorkThread;
     private Thread mImageWorkThread;
@@ -49,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
     private Button mBtnCloseCamera;
     private Button mBtnStart;
     private Button mBtnStop;
+    private Button mBtnRecording;
     private ByteBuffer mData;
     private DetectedResult[] mDetectedResults;
     private List<RectF> mRectList = new ArrayList<>();
@@ -63,11 +74,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        if (savedInstanceState != null) {
+            shouldRecord = savedInstanceState.getBoolean("should_record", false);
+        }
         mImageView = findViewById(R.id.image);
         mBtnOpenImage = findViewById(R.id.btn_open_image);
         mBtnCloseImage = findViewById(R.id.btn_close_image);
         mBtnOpenCamera = findViewById(R.id.btn_open_camera);
         mBtnCloseCamera = findViewById(R.id.btn_close_camera);
+        mBtnRecording = findViewById(R.id.btn_record);
         mBtnStart = findViewById(R.id.btn_start);
         mBtnStop = findViewById(R.id.btn_stop);
         checkPermission();
@@ -90,6 +105,15 @@ public class MainActivity extends AppCompatActivity {
         });
         mBtnStop.setOnClickListener(v -> {
             stopDetect();
+        });
+
+        mBtnRecording.setOnClickListener(v -> {
+            shouldRecord = !shouldRecord;
+            if (shouldRecord) {
+                mBtnRecording.setText(R.string.btn_stop_recording);
+            } else {
+                mBtnRecording.setText(R.string.btn_start_recording);
+            }
         });
     }
 
@@ -254,7 +278,7 @@ public class MainActivity extends AppCompatActivity {
                                     result.x2 / BITMAP_SCALE, result.y2 / BITMAP_SCALE));
                         }
                     }
-                    if(mBitmap != null) {
+                    if (mBitmap != null) {
                         int width = mBitmap.getWidth() / BITMAP_SCALE;
                         int height = mBitmap.getHeight() / BITMAP_SCALE;
                         if (width != mImageViewWidth || height != mImageViewHeight) {
@@ -370,6 +394,9 @@ public class MainActivity extends AppCompatActivity {
                     if (mBitmap != null) {
                         showImage();
                     }
+                    if (mBitmap != null && shouldRecord) {
+                        saveImage(mBitmap);
+                    }
                     Vision.getInstance().returnFrame(frame);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -386,6 +413,45 @@ public class MainActivity extends AppCompatActivity {
             }
 
             clearBitmap();
+        }
+    }
+
+    private void saveImage(Bitmap bitmap) {
+        if (bitmap == null) {
+            return;
+        }
+        synchronized (mBitmapLock) {
+            if (Objects.equals(Environment.getExternalStorageState(), Environment.MEDIA_MOUNTED)) {
+                File footageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+                if (footageDir != null) {
+                    if (!footageDir.exists()) {
+                        footageDir.mkdirs();
+                    }
+                    String msTimeStamp = new SimpleDateFormat("yyyyMMdd_HHmmssSSS", Locale.US).format(new Date());
+                    String fileName = "footage_" + msTimeStamp + ".jpg";
+                    File newFile = new File(footageDir, fileName);
+                    if (!newFile.exists()) {
+                        try {
+                            boolean created = newFile.createNewFile();
+                        } catch (IOException e) {
+//                        firebaseCrashlytics.recordException(e)
+                        }
+                        try {
+                            OutputStream newFileOut = new FileOutputStream(newFile);
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, newFileOut);
+                            newFileOut.flush();
+                            newFileOut.close();
+                            runOnUiThread(() -> Toast.makeText(MainActivity.this, "Saved image", Toast.LENGTH_SHORT).show());
+                            Log.d("bg-record", "Saved image");
+                        } catch (Throwable t) {
+                            String logMessage = "Error resizing/saving bitmap";
+                            Log.e("bg-record", logMessage);
+//                        firebaseCrashlytics.log(logMessage)
+//                        firebaseCrashlytics.recordException(t)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -410,5 +476,11 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         bitmap.setPixels(rgba, 0, width, 0, 0, width, height);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+        super.onSaveInstanceState(outState, outPersistentState);
+        outState.putBoolean("should_record", shouldRecord);
     }
 }
