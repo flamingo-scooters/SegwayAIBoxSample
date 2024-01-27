@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.RectF
 import android.os.Bundle
+import android.os.Environment
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -17,7 +18,14 @@ import com.segway.robot.sdk.vision.Vision
 import com.segway.robot.sdk.vision.stream.PixelFormat
 import com.segway.robot.sdk.vision.stream.Resolution
 import com.segway.robot.sdk.vision.stream.VisionStreamType
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.OutputStream
 import java.nio.ByteBuffer
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.concurrent.Volatile
 import kotlin.math.roundToInt
 
@@ -32,6 +40,8 @@ class MainActivity() : AppCompatActivity() {
 
     @Volatile
     private var mIsImageStarted = false
+
+    private var shouldRecord = false
 
     @Volatile
     private var mIsCameraStarted = false
@@ -325,6 +335,9 @@ class MainActivity() : AppCompatActivity() {
                     if (mBitmap != null) {
                         showImage()
                     }
+                    if (mBitmap != null && shouldRecord) {
+                        saveImage(mBitmap)
+                    }
                     Vision.getInstance().returnFrame(frame)
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -340,6 +353,46 @@ class MainActivity() : AppCompatActivity() {
                 }
             }
             clearBitmap()
+        }
+    }
+
+    private fun saveImage(bitmap: Bitmap?) {
+        if (bitmap == null) {
+            return
+        }
+        synchronized(mBitmapLock) {
+            if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
+                val footageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+                if (footageDir?.exists() == false) {
+                    footageDir.mkdirs()
+                }
+                if (footageDir != null) {
+                    val msTimeStamp = SimpleDateFormat("yyyyMMdd_HHmmssSSS", Locale.US).format(Date())
+                    val fileName = "footage_$msTimeStamp"
+                    val newFile = File(footageDir, "$fileName.jpg")
+                    if (!newFile.exists()) {
+                        try {
+                            newFile.createNewFile()
+                        } catch (e: IOException) {
+//                        firebaseCrashlytics.recordException(e)
+                        }
+                        try {
+                            val newFileOut: OutputStream = FileOutputStream(newFile)
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, newFileOut)
+                            newFileOut.flush()
+                            newFileOut.close()
+                            runOnUiThread { Toast.makeText(this, "Saved image", Toast.LENGTH_SHORT).show() }
+                            Log.d("bg-record", "Saved image")
+                        } catch (t: Throwable) {
+                            val logMessage = "Error resizing/saving bitmap"
+                            Log.e("bg-record", logMessage)
+//                        firebaseCrashlytics.log(logMessage)
+//                        firebaseCrashlytics.recordException(t)
+                        }
+
+                    }
+                }
+            }
         }
     }
 
