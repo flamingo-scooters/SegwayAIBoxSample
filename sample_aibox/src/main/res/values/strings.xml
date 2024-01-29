@@ -8,4 +8,6 @@
     <string name="btn_open_camera">Open the camera</string>
     <string name="btn_close_camera">Close the camera</string>
     <string name="btn_close_image">Close local image</string>
+    <string name="btn_start_recording">Start recording</string>
+    <string name="btn_stop_recording">Stop recording</string>
 </resources>

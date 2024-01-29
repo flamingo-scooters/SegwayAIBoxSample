@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.RectF
 import android.os.Bundle
 import android.os.Environment
+import android.os.PersistableBundle
 import android.support.v4.app.ActivityCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -55,6 +56,7 @@ class MainActivity() : AppCompatActivity() {
     private var mBtnCloseCamera: Button? = null
     private var mBtnStart: Button? = null
     private var mBtnStop: Button? = null
+    private var mBtnRecording: Button? = null
     private var mData: ByteBuffer? = null
     private var mDetectedResults: Array<DetectedResult>? = null
     private val mRectList: MutableList<RectF> = ArrayList()
@@ -64,6 +66,7 @@ class MainActivity() : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        shouldRecord = savedInstanceState?.getBoolean(SHOULD_RECORD, false) ?: false
         mImageView = findViewById(R.id.image)
         mBtnOpenImage = findViewById(R.id.btn_open_image)
         mBtnCloseImage = findViewById(R.id.btn_close_image)
@@ -71,6 +74,7 @@ class MainActivity() : AppCompatActivity() {
         mBtnCloseCamera = findViewById(R.id.btn_close_camera)
         mBtnStart = findViewById(R.id.btn_start)
         mBtnStop = findViewById(R.id.btn_stop)
+        mBtnRecording = findViewById(R.id.btn_record)
         checkPermission()
         resetUI()
         mBtnOpenImage?.setOnClickListener { openImage() }
@@ -79,6 +83,14 @@ class MainActivity() : AppCompatActivity() {
         mBtnCloseCamera?.setOnClickListener { closeCamera() }
         mBtnStart?.setOnClickListener { startDetect() }
         mBtnStop?.setOnClickListener { stopDetect() }
+        mBtnRecording?.setOnClickListener {
+            shouldRecord = !shouldRecord
+            if (shouldRecord) {
+                mBtnRecording?.setText(R.string.btn_stop_recording)
+            } else {
+                mBtnRecording?.setText(R.string.btn_start_recording)
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -417,6 +429,11 @@ class MainActivity() : AppCompatActivity() {
         bitmap?.setPixels(rgba, 0, width, 0, 0, width, height)
     }
 
+    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
+        super.onSaveInstanceState(outState, outPersistentState)
+        outState.putBoolean(SHOULD_RECORD, shouldRecord)
+    }
+
     companion object {
         private val TAG = MainActivity::class.java.simpleName
         private const val LOCAL_IMAGE_PATH = "sdcard/apple.jpeg"
@@ -424,6 +441,7 @@ class MainActivity() : AppCompatActivity() {
         private val PERMISSIONS_STORAGE = arrayOf("android.permission.READ_EXTERNAL_STORAGE",
                 "android.permission.WRITE_EXTERNAL_STORAGE")
         private const val BITMAP_SCALE = 4
+        private const val SHOULD_RECORD = "should_record"
 
         init {
             System.loadLibrary("vision_aibox")
