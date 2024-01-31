@@ -7,26 +7,21 @@ import android.graphics.BitmapFactory
 import android.graphics.RectF
 import android.os.Bundle
 import android.os.Environment
-import android.os.PersistableBundle
-import androidx.core.app.ActivityCompat
-import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.Toast
+import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.lifecycle.Observer
+import com.segway.robot.sample.aibox.tool.Event
 import com.segway.robot.sdk.vision.BindStateListener
 import com.segway.robot.sdk.vision.Vision
 import com.segway.robot.sdk.vision.stream.PixelFormat
 import com.segway.robot.sdk.vision.stream.Resolution
 import com.segway.robot.sdk.vision.stream.VisionStreamType
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.OutputStream
 import java.nio.ByteBuffer
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlin.concurrent.Volatile
 import kotlin.math.roundToInt
 
@@ -41,8 +36,6 @@ class AIBoxActivity : AppCompatActivity() {
 
     @Volatile
     private var mIsImageStarted = false
-
-    private var shouldRecord = false
 
     @Volatile
     private var mIsCameraStarted = false
@@ -63,10 +56,11 @@ class AIBoxActivity : AppCompatActivity() {
     private var mImageViewWidth = 0
     private var mImageViewHeight = 0
 
+    private val recordViewModel: RecordViewModel by viewModels<RecordViewModel>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        shouldRecord = savedInstanceState?.getBoolean(SHOULD_RECORD, false) ?: false
         mImageView = findViewById(R.id.image)
         mBtnOpenImage = findViewById(R.id.btn_open_image)
         mBtnCloseImage = findViewById(R.id.btn_close_image)
@@ -84,12 +78,21 @@ class AIBoxActivity : AppCompatActivity() {
         mBtnStart?.setOnClickListener { startDetect() }
         mBtnStop?.setOnClickListener { stopDetect() }
         mBtnRecording?.setOnClickListener {
-            shouldRecord = !shouldRecord
-            if (shouldRecord) {
-                mBtnRecording?.setText(R.string.btn_stop_recording)
-            } else {
+            if (recordViewModel.isRecording()) {
+                recordViewModel.stopRecording()
                 mBtnRecording?.setText(R.string.btn_start_recording)
+            } else {
+                recordViewModel.startRecording()
+                mBtnRecording?.setText(R.string.btn_stop_recording)
             }
+        }
+
+        recordViewModel.getLogDisplay().observe(this, Observer(::onRecordLogDisplay))
+    }
+
+    private fun onRecordLogDisplay(event: Event<String>?) {
+        event?.getContentIfNotHandled()?.let {
+            Toast.makeText(this, it, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -347,8 +350,8 @@ class AIBoxActivity : AppCompatActivity() {
                     if (mBitmap != null) {
                         showImage()
                     }
-                    if (mBitmap != null && shouldRecord) {
-                        saveImage(mBitmap)
+                    synchronized(mBitmapLock) {
+                        recordViewModel.saveImage(mBitmap, getExternalFilesDir(Environment.DIRECTORY_PICTURES))
                     }
                     Vision.getInstance().returnFrame(frame)
                 } catch (e: Exception) {
@@ -365,46 +368,6 @@ class AIBoxActivity : AppCompatActivity() {
                 }
             }
             clearBitmap()
-        }
-    }
-
-    private fun saveImage(bitmap: Bitmap?) {
-        if (bitmap == null) {
-            return
-        }
-        synchronized(mBitmapLock) {
-            if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
-                val footageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-                if (footageDir?.exists() == false) {
-                    footageDir.mkdirs()
-                }
-                if (footageDir != null) {
-                    val msTimeStamp = SimpleDateFormat("yyyyMMdd_HHmmssSSS", Locale.US).format(Date())
-                    val fileName = "footage_$msTimeStamp"
-                    val newFile = File(footageDir, "$fileName.jpg")
-                    if (!newFile.exists()) {
-                        try {
-                            newFile.createNewFile()
-                        } catch (e: IOException) {
-//                        firebaseCrashlytics.recordException(e)
-                        }
-                        try {
-                            val newFileOut: OutputStream = FileOutputStream(newFile)
-                            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, newFileOut)
-                            newFileOut.flush()
-                            newFileOut.close()
-                            runOnUiThread { Toast.makeText(this, "Saved image", Toast.LENGTH_SHORT).show() }
-                            Log.d("bg-record", "Saved image")
-                        } catch (t: Throwable) {
-                            val logMessage = "Error resizing/saving bitmap"
-                            Log.e("bg-record", logMessage)
-//                        firebaseCrashlytics.log(logMessage)
-//                        firebaseCrashlytics.recordException(t)
-                        }
-
-                    }
-                }
-            }
         }
     }
 
@@ -429,11 +392,6 @@ class AIBoxActivity : AppCompatActivity() {
         bitmap?.setPixels(rgba, 0, width, 0, 0, width, height)
     }
 
-    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
-        super.onSaveInstanceState(outState, outPersistentState)
-        outState.putBoolean(SHOULD_RECORD, shouldRecord)
-    }
-
     companion object {
         private val TAG = AIBoxActivity::class.java.simpleName
         private const val LOCAL_IMAGE_PATH = "sdcard/apple.jpeg"
@@ -441,7 +399,6 @@ class AIBoxActivity : AppCompatActivity() {
         private val PERMISSIONS_STORAGE = arrayOf("android.permission.READ_EXTERNAL_STORAGE",
                 "android.permission.WRITE_EXTERNAL_STORAGE")
         private const val BITMAP_SCALE = 4
-        private const val SHOULD_RECORD = "should_record"
 
         init {
             System.loadLibrary("vision_aibox")
