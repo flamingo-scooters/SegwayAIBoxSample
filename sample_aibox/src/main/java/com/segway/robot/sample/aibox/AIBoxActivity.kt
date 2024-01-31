@@ -30,7 +30,7 @@ import java.util.Locale
 import kotlin.concurrent.Volatile
 import kotlin.math.roundToInt
 
-class MainActivity() : AppCompatActivity() {
+class AIBoxActivity : AppCompatActivity() {
     private var mImageView: VisionImageView? = null
 
     @Volatile
@@ -274,7 +274,7 @@ class MainActivity() : AppCompatActivity() {
                     //                    mBitmap = BitmapFactory.decodeResource(getResources(), R.raw.fashion_sample);
                     val currentBitmap = mBitmap
                     if (currentBitmap == null) {
-                        runOnUiThread { Toast.makeText(this@MainActivity, "The picture does not exist!", Toast.LENGTH_SHORT).show() }
+                        runOnUiThread { Toast.makeText(this@AIBoxActivity, "The picture does not exist!", Toast.LENGTH_SHORT).show() }
                     } else if (mIsDetecting) {
                         val size: Int = currentBitmap.byteCount
                         if (mData == null || mData?.capacity() != size) {
@@ -435,7 +435,7 @@ class MainActivity() : AppCompatActivity() {
     }
 
     companion object {
-        private val TAG = MainActivity::class.java.simpleName
+        private val TAG = AIBoxActivity::class.java.simpleName
         private const val LOCAL_IMAGE_PATH = "sdcard/apple.jpeg"
         private const val REQUEST_CODE = 1
         private val PERMISSIONS_STORAGE = arrayOf("android.permission.READ_EXTERNAL_STORAGE",
