@@ -15,7 +15,7 @@ limitations under the License.
 
 package com.example.android.smartreply;
 
-import android.support.annotation.Keep;
+import androidx.annotation.Keep;
 
 /**
  * SmartReply contains predicted message, and confidence.
