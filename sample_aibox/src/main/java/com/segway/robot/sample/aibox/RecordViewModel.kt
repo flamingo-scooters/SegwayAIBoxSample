@@ -33,6 +33,7 @@ class RecordViewModel : ViewModel() {
     fun isRecording() = shouldRecord
 
     fun saveImage(bitmap: Bitmap?, picturesDir: File?) {
+        Log.d(TAG, "About to save image to ${picturesDir?.absolutePath}")
         if (bitmap == null) {
             return
         }
@@ -59,10 +60,10 @@ class RecordViewModel : ViewModel() {
                         newFileOut.flush()
                         newFileOut.close()
                         logDisplay.postValue(Event("Saved image"))
-                        Log.d("bg-record", "Saved image")
+                        Log.d(TAG, "Saved image")
                     } catch (t: Throwable) {
                         val logMessage = "Error resizing/saving bitmap"
-                        Log.e("bg-record", logMessage)
+                        Log.e(TAG, logMessage)
 //                        firebaseCrashlytics.log(logMessage)
 //                        firebaseCrashlytics.recordException(t)
                     }
@@ -70,5 +71,9 @@ class RecordViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "bg-record"
     }
 }

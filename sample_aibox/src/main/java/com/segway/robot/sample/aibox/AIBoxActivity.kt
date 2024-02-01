@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.RectF
 import android.os.Bundle
 import android.os.Environment
+import android.os.Environment.getExternalStoragePublicDirectory
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Button
@@ -21,6 +22,7 @@ import com.segway.robot.sdk.vision.Vision
 import com.segway.robot.sdk.vision.stream.PixelFormat
 import com.segway.robot.sdk.vision.stream.Resolution
 import com.segway.robot.sdk.vision.stream.VisionStreamType
+import java.io.File
 import java.nio.ByteBuffer
 import kotlin.concurrent.Volatile
 import kotlin.math.roundToInt
@@ -351,7 +353,9 @@ class AIBoxActivity : AppCompatActivity() {
                         showImage()
                     }
                     synchronized(mBitmapLock) {
-                        recordViewModel.saveImage(mBitmap, getExternalFilesDir(Environment.DIRECTORY_PICTURES))
+                        val devicesPicturesDir = getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                        val appPicturesDir = File(devicesPicturesDir, "AIBoxFootage")
+                        recordViewModel.saveImage(mBitmap, appPicturesDir)
                     }
                     Vision.getInstance().returnFrame(frame)
                 } catch (e: Exception) {
