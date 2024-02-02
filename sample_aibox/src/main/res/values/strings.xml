@@ -10,4 +10,5 @@
     <string name="btn_close_image">Close local image</string>
     <string name="btn_start_recording">Start recording</string>
     <string name="btn_stop_recording">Stop recording</string>
+    <string name="log_placeholder">Last logs will show here</string>
 </resources>

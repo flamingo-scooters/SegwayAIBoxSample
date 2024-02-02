@@ -11,6 +11,7 @@ import android.os.Environment.getExternalStoragePublicDirectory
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -52,6 +53,7 @@ class AIBoxActivity : AppCompatActivity() {
     private var mBtnStart: Button? = null
     private var mBtnStop: Button? = null
     private var mBtnRecording: Button? = null
+    private var mTvLogs: TextView? = null
     private var mData: ByteBuffer? = null
     private var mDetectedResults: Array<DetectedResult>? = null
     private val mRectList: MutableList<RectF> = ArrayList()
@@ -71,6 +73,7 @@ class AIBoxActivity : AppCompatActivity() {
         mBtnStart = findViewById(R.id.btn_start)
         mBtnStop = findViewById(R.id.btn_stop)
         mBtnRecording = findViewById(R.id.btn_record)
+        mTvLogs = findViewById(R.id.tv_logs)
         checkPermission()
         resetUI()
         mBtnOpenImage?.setOnClickListener { openImage() }
@@ -200,17 +203,20 @@ class AIBoxActivity : AppCompatActivity() {
 
     private fun bindAndStartVision() {
         //bind Vision Service
+        mTvLogs?.text = "Start binding Vision service"
         val ret = Vision.getInstance().bindService(this, object : BindStateListener {
             override fun onBind() {
                 Log.d(TAG, "onBind")
                 mIsBind = true
                 try {
+                    mTvLogs?.text = "bound Vision service"
                     //Obtain internal calibration data
                     val intrinsics = Vision.getInstance().getIntrinsics(VisionStreamType.FISH_EYE)
                     Log.d(TAG, "intrinsics: $intrinsics")
                     Vision.getInstance().startVision(VisionStreamType.FISH_EYE)
                     mVisionWorkThread = VisionWorkThread()
                     mVisionWorkThread?.start()
+                    mTvLogs?.text = "Started Vision thread"
                     mBtnOpenCamera?.isEnabled = false
                     mBtnStart?.isEnabled = true
                     mBtnCloseCamera?.isEnabled = true
@@ -242,6 +248,7 @@ class AIBoxActivity : AppCompatActivity() {
 
     private fun showImage() {
         runOnUiThread(Runnable {
+            mTvLogs?.text = "Attempting to show image"
             synchronized(mBitmapLock) {
                 mRectList.clear()
                 val results = mDetectedResults

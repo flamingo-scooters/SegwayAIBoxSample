@@ -90,6 +90,12 @@
                 android:text="@string/btn_start_recording" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/tv_logs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/log_placeholder"/>
+
         <com.segway.robot.sample.aibox.VisionImageView
             android:id="@+id/image"
             android:layout_width="wrap_content"
