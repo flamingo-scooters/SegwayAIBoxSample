@@ -7,6 +7,7 @@ import android.content.ServiceConnection
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.ParcelFileDescriptor
 import android.os.RemoteException
 import android.os.SharedMemory
 import android.system.OsConstants
@@ -144,6 +145,7 @@ class OwnVisionManager {
                                 memoryFileBuffer.index,
                                 0,
                                 memoryFileBuffer.imageFD.fileDescriptor,
+                                memoryFileBuffer.imageFD,
                                 memoryFileBuffer.imageSize
                             )
                             val infoBuffer = getMappedBufferFromMemoryFile(
@@ -151,6 +153,7 @@ class OwnVisionManager {
                                 memoryFileBuffer.index,
                                 1,
                                 memoryFileBuffer.infoFD.fileDescriptor,
+                                memoryFileBuffer.infoFD,
                                 memoryFileBuffer.infoSize
                             )
                             if (imageBuffer == null || infoBuffer == null) {
@@ -257,6 +260,7 @@ class OwnVisionManager {
                                 memoryFileBuffer.index,
                                 0,
                                 memoryFileBuffer.imageFD.fileDescriptor,
+                                memoryFileBuffer.imageFD,
                                 memoryFileBuffer.imageSize
                             )
                             val infoBuffer = getMappedBufferFromMemoryFile(
@@ -264,6 +268,7 @@ class OwnVisionManager {
                                 memoryFileBuffer.index,
                                 1,
                                 memoryFileBuffer.infoFD.fileDescriptor,
+                                memoryFileBuffer.infoFD,
                                 memoryFileBuffer.infoSize
                             )
                             if (imageBuffer == null || infoBuffer == null) {
@@ -399,6 +404,7 @@ class OwnVisionManager {
         index: Int,
         info: Int,
         fileDescriptor: FileDescriptor,
+        parcelFileDescriptor: ParcelFileDescriptor,
         size: Int
     ): ByteBuffer? {
         var mappedByteBuffer: ByteBuffer?
@@ -410,16 +416,10 @@ class OwnVisionManager {
             mappedByteBuffer?.rewind()
             return mappedByteBuffer
         }
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             try {
-                if (mSharedMemoryConstructor == null) {
-                    val newSharedMemoryConstructor =
-                        SharedMemory::class.java.getDeclaredConstructor(FileDescriptor::class.java)
-                    newSharedMemoryConstructor.isAccessible = true
-                    mSharedMemoryConstructor = newSharedMemoryConstructor
-                }
-                val sharedMemory = mSharedMemoryConstructor?.newInstance(fileDescriptor)
-                mappedByteBuffer = sharedMemory?.map(OsConstants.PROT_READ, 0, size)
+                val sharedMemory = SharedMemory.fromFileDescriptor(parcelFileDescriptor)
+                mappedByteBuffer = sharedMemory.map(OsConstants.PROT_READ, 0, size)
             } catch (e: Exception) {
                 Log.e(TAG, "map buffer from memory file error", e)
                 return null
@@ -428,6 +428,7 @@ class OwnVisionManager {
             var fileInputStream: FileInputStream? = null
             try {
                 fileInputStream = FileInputStream(fileDescriptor)
+                Log.d(TAG, "Opening channel to read $size bytes")
                 mappedByteBuffer =
                     fileInputStream.channel.map(FileChannel.MapMode.READ_ONLY, 0, size.toLong())
             } catch (e: IOException) {
