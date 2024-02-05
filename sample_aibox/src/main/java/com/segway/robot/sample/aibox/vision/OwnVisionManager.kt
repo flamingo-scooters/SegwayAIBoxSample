@@ -33,6 +33,7 @@ import java.lang.reflect.Constructor
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.min
 
 class OwnVisionManager {
     private val TAG = OwnVision::class.java.simpleName
@@ -428,9 +429,10 @@ class OwnVisionManager {
             var fileInputStream: FileInputStream? = null
             try {
                 fileInputStream = FileInputStream(fileDescriptor)
+                val channel = fileInputStream.channel
                 Log.d(TAG, "Opening channel to read $size bytes")
                 mappedByteBuffer =
-                    fileInputStream.channel.map(FileChannel.MapMode.READ_ONLY, 0, size.toLong())
+                    channel.map(FileChannel.MapMode.READ_WRITE, channel.position(), size.toLong())
             } catch (e: IOException) {
                 Log.e(TAG, "map buffer from memory file error", e)
                 return null
@@ -450,7 +452,7 @@ class OwnVisionManager {
             )
         }
         if (mappedByteBuffer != null) {
-            mappedByteBuffer!!.rewind()
+            mappedByteBuffer?.rewind()
         }
         return mappedByteBuffer
     }
