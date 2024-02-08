@@ -141,6 +141,7 @@ class OwnVisionManager {
                     @Throws(RemoteException::class)
                     override fun onNewImage(memoryFileBuffer: MemoryFileBuffer) {
                         try {
+                            Log.d(TAG, "new image from buffer")
                             val imageBuffer = getMappedBufferFromMemoryFile(
                                 streamType,
                                 memoryFileBuffer.index,
@@ -191,6 +192,7 @@ class OwnVisionManager {
                                 return
                             }
                             prevTimeStamp = ts
+                            Log.d(TAG, "new image with stream type ${frameInfo.streamType}")
                             callback.onNewImage(frameInfo, imageBuffer)
                             releaseMemoryFileBuffer(streamType, memoryFileBuffer.index)
                         } finally {
@@ -363,9 +365,12 @@ class OwnVisionManager {
 
     fun getLatestFrameForStream(streamType: Int, previousTid: Long): Frame? {
         var frameBuffer: FrameBuffer?
-        synchronized(mFrameBufferMap) { frameBuffer = mFrameBufferMap[streamType] }
+        synchronized(mFrameBufferMap) {
+            frameBuffer = mFrameBufferMap[streamType]
+            Log.d(TAG, "mFrameBufferMap got ${mFrameBufferMap.size()}")
+        }
         if (frameBuffer == null) {
-            Log.e(TAG, "getLatersFrameForStream frameBuffer = null. ")
+            Log.e(TAG, "getLatestFrameForStream null frameBuffer for stream type $streamType")
             throw IllegalArgumentException("stream image transfer not initialized.")
         }
         return frameBuffer?.getLatest(previousTid)

@@ -61,7 +61,7 @@ class OwnVision {
      */
     @Synchronized
     fun startVision(streamType: Int) {
-        mVisionManager!!.startImageStreamToBufferByMemoryFile(streamType)
+        mVisionManager.startImageStreamToBufferByMemoryFile(streamType)
     }
 
     /**
@@ -80,7 +80,7 @@ class OwnVision {
             Log.e(TAG, "illegalStateException")
             throw IllegalArgumentException("Listener is null")
         }
-        mVisionManager!!.startImageTransferMemoryFileBuffer(streamType,
+        mVisionManager.startImageTransferMemoryFileBuffer(streamType,
             ImageStreamCallback { frameInfo, buffer ->
                 val frame: Frame = FrameImpl(frameInfo, buffer)
                 listener.onNewFrame(streamType, frame)

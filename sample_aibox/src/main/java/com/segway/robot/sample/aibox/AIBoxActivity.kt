@@ -20,6 +20,7 @@ import androidx.lifecycle.Observer
 import com.segway.robot.sample.aibox.tool.Event
 import com.segway.robot.sample.aibox.vision.OwnVision
 import com.segway.robot.sdk.vision.BindStateListener
+import com.segway.robot.sdk.vision.frame.Frame
 import com.segway.robot.sdk.vision.stream.PixelFormat
 import com.segway.robot.sdk.vision.stream.Resolution
 import com.segway.robot.sdk.vision.stream.VisionStreamType
@@ -218,18 +219,32 @@ class AIBoxActivity : AppCompatActivity() {
                 Log.d(TAG, "onBind")
                 mIsBind = true
                 try {
+                    mBtnCloseCamera?.isEnabled = true
+                    mBtnOpenCamera?.isEnabled = false
+                    mBtnStart?.isEnabled = true
                     mTvLogs?.text = "bound Vision service"
                     //Obtain internal calibration data
                     val intrinsics =
                         OwnVision.getInstance()?.getIntrinsics(VisionStreamType.FISH_EYE)
                     Log.d(TAG, "intrinsics: $intrinsics")
-                    OwnVision.getInstance()?.startVision(VisionStreamType.FISH_EYE)
+//                    OwnVision.getInstance()?.startVision(VisionStreamType.FISH_EYE)
+                    OwnVision.getInstance()?.startVision(VisionStreamType.FISH_EYE,
+                        object : OwnVision.FrameListener {
+                            override fun onNewFrame(streamType: Int, frame: Frame?) {
+                                Log.d(TAG, "Got a new frame from the Vision service")
+                                if (frame != null) {
+                                    try {
+                                        onNewFrame(frame)
+                                    } catch (e: Exception) {
+                                        Log.d(TAG, "Exception $e")
+                                        e.printStackTrace()
+                                    }
+                                }
+                            }
+                        })
                     mVisionWorkThread = VisionWorkThread()
-                    mVisionWorkThread?.start()
-                    mTvLogs?.text = "Started Vision thread"
-                    mBtnOpenCamera?.isEnabled = false
-                    mBtnStart?.isEnabled = true
-                    mBtnCloseCamera?.isEnabled = true
+//                    mVisionWorkThread?.start()
+//                    mTvLogs?.text = "Started Vision thread"
                 } catch (e: Exception) {
                     Log.d(TAG, "error:", e)
                 }
@@ -350,65 +365,15 @@ class AIBoxActivity : AppCompatActivity() {
             while (mIsCameraStarted && mIsBind) {
                 val startTs = System.currentTimeMillis()
                 try {
+                    Log.d(TAG, "on VisionWorkThread")
                     val visionInstance = OwnVision.getInstance()
                     val frame = visionInstance?.getLatestFrame(VisionStreamType.FISH_EYE)
                     if (frame != null) {
-                        Log.d(
-                            TAG,
-                            "ts: " + frame.info.platformTimeStamp + "  " + frame.info.imuTimeStamp
-                        )
-                        val resolution = frame.info.resolution
-                        val width = Resolution.getWidth(resolution)
-                        val height = Resolution.getHeight(resolution)
-                        synchronized(mBitmapLock) {
-                            if (mBitmap == null) {
-                                mBitmap =
-                                    Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                            }
-                        }
-                        val pixelFormat = frame.info.pixelFormat
-                        if (pixelFormat == PixelFormat.YUV420 || pixelFormat == PixelFormat.YV12) {
-                            val limit = frame.byteBuffer.limit()
-                            if (mIsDetecting) {
-                                if (mData == null || mData?.capacity() != limit) {
-                                    mData = ByteBuffer.allocateDirect(limit)
-                                }
-                                frame.byteBuffer.position(0)
-                                mData?.rewind()
-                                mData?.put(frame.byteBuffer)
-                                synchronized(mBitmapLock) {
-                                    mDetectedResults =
-                                        VisionNative.nativeDetect(mData, pixelFormat, width, height)
-                                }
-                            } else {
-                                synchronized(mBitmapLock) { mDetectedResults = null }
-                            }
-                            val buff = ByteArray(limit)
-                            frame.byteBuffer.position(0)
-                            frame.byteBuffer[buff]
-                            synchronized(mBitmapLock) {
-                                yuv2RGBBitmap(
-                                    buff,
-                                    mBitmap,
-                                    width,
-                                    height
-                                )
-                            }
-                        } else {
-                            Log.d(TAG, "An unsupported format")
-                        }
-                        if (mBitmap != null) {
-                            showImage()
-                        }
-                        synchronized(mBitmapLock) {
-                            val devicesPicturesDir =
-                                getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                            val appPicturesDir = File(devicesPicturesDir, "AIBoxFootage")
-                            recordViewModel.saveImage(mBitmap, appPicturesDir)
-                        }
-                        visionInstance?.returnFrame(frame)
+                        onNewFrame(frame)
+                        visionInstance.returnFrame(frame)
                     }
                 } catch (e: Exception) {
+                    Log.d(TAG, "Exception $e")
                     e.printStackTrace()
                 }
                 val endTs = System.currentTimeMillis()
@@ -422,6 +387,62 @@ class AIBoxActivity : AppCompatActivity() {
                 }
             }
             clearBitmap()
+        }
+    }
+
+    private fun onNewFrame(frame: Frame) {
+        Log.d(
+            TAG,
+            "ts: " + frame.info.platformTimeStamp + "  " + frame.info.imuTimeStamp
+        )
+        val resolution = frame.info.resolution
+        val width = Resolution.getWidth(resolution)
+        val height = Resolution.getHeight(resolution)
+        synchronized(mBitmapLock) {
+            if (mBitmap == null) {
+                mBitmap =
+                    Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            }
+        }
+        val pixelFormat = frame.info.pixelFormat
+        if (pixelFormat == PixelFormat.YUV420 || pixelFormat == PixelFormat.YV12) {
+            val limit = frame.byteBuffer.limit()
+            if (mIsDetecting) {
+                if (mData == null || mData?.capacity() != limit) {
+                    mData = ByteBuffer.allocateDirect(limit)
+                }
+                frame.byteBuffer.position(0)
+                mData?.rewind()
+                mData?.put(frame.byteBuffer)
+                synchronized(mBitmapLock) {
+                    mDetectedResults =
+                        VisionNative.nativeDetect(mData, pixelFormat, width, height)
+                }
+            } else {
+                synchronized(mBitmapLock) { mDetectedResults = null }
+            }
+            val buff = ByteArray(limit)
+            frame.byteBuffer.position(0)
+            frame.byteBuffer[buff]
+            synchronized(mBitmapLock) {
+                yuv2RGBBitmap(
+                    buff,
+                    mBitmap,
+                    width,
+                    height
+                )
+            }
+        } else {
+            Log.d(TAG, "An unsupported format")
+        }
+        if (mBitmap != null) {
+            showImage()
+        }
+        synchronized(mBitmapLock) {
+            val devicesPicturesDir =
+                getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+            val appPicturesDir = File(devicesPicturesDir, "AIBoxFootage")
+            recordViewModel.saveImage(mBitmap, appPicturesDir)
         }
     }
 
