@@ -13,9 +13,15 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import com.segway.robot.sample.aibox.tool.Event
 import com.segway.robot.sample.aibox.vision.OwnVision
@@ -54,6 +60,8 @@ class AIBoxActivity : AppCompatActivity() {
     private var mBtnStart: Button? = null
     private var mBtnStop: Button? = null
     private var mBtnRecording: Button? = null
+    private var mBtnCamXPreview: Button? = null
+    private var camXPreview: PreviewView? = null
     private var mTvLogs: TextView? = null
     private var mData: ByteBuffer? = null
     private var mDetectedResults: Array<DetectedResult>? = null
@@ -74,8 +82,10 @@ class AIBoxActivity : AppCompatActivity() {
         mBtnStart = findViewById(R.id.btn_start)
         mBtnStop = findViewById(R.id.btn_stop)
         mBtnRecording = findViewById(R.id.btn_record)
+        mBtnCamXPreview = findViewById(R.id.btn_camx_start)
+        camXPreview = findViewById(R.id.camXViewFinder)
         mTvLogs = findViewById(R.id.tv_logs)
-        checkPermission()
+        checkStoragePermission()
         resetUI()
         mBtnOpenImage?.setOnClickListener { openImage() }
         mBtnCloseImage?.setOnClickListener { closeImage() }
@@ -91,6 +101,9 @@ class AIBoxActivity : AppCompatActivity() {
                 recordViewModel.startRecording()
                 mBtnRecording?.setText(R.string.btn_stop_recording)
             }
+        }
+        mBtnCamXPreview?.setOnClickListener {
+            activityResultLauncher.launch(PERMISSION_CAMERA)
         }
 
         recordViewModel.getLogDisplay().observe(this, Observer(::onRecordLogDisplay))
@@ -117,7 +130,7 @@ class AIBoxActivity : AppCompatActivity() {
         mBtnCloseImage?.isEnabled = false
     }
 
-    private fun checkPermission() {
+    private fun checkStoragePermission() {
         if ((ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                     != PackageManager.PERMISSION_GRANTED)
         ) {
@@ -134,6 +147,59 @@ class AIBoxActivity : AppCompatActivity() {
             }
             ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, REQUEST_CODE)
         }
+    }
+
+    private val activityResultLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions())
+        { permissions ->
+            // Handle Permission granted/rejected
+            var permissionGranted = true
+            permissions.entries.forEach {
+                if (it.key in PERMISSION_CAMERA && !it.value)
+                    permissionGranted = false
+            }
+            if (!permissionGranted) {
+                Toast.makeText(
+                    baseContext,
+                    "Camera permission request denied",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                startCamera()
+            }
+        }
+
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+
+        cameraProviderFuture.addListener({
+            // Used to bind the lifecycle of cameras to the lifecycle owner
+            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+
+            // Preview
+            val preview = Preview.Builder()
+                .build()
+                .also {
+                    it.setSurfaceProvider(camXPreview?.surfaceProvider)
+                }
+
+            // Select back camera as a default
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+            try {
+                // Unbind use cases before rebinding
+                cameraProvider.unbindAll()
+
+                // Bind use cases to camera
+                cameraProvider.bindToLifecycle(
+                    this, cameraSelector, preview
+                )
+
+            } catch (exc: Exception) {
+                Log.e(TAG, "Use case binding failed", exc)
+            }
+
+        }, ContextCompat.getMainExecutor(this))
     }
 
     @Synchronized
@@ -478,6 +544,7 @@ class AIBoxActivity : AppCompatActivity() {
             "android.permission.READ_EXTERNAL_STORAGE",
             "android.permission.WRITE_EXTERNAL_STORAGE"
         )
+        private val PERMISSION_CAMERA = arrayOf("android.permission.CAMERA")
         private const val BITMAP_SCALE = 4
 
         init {
