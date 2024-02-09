@@ -45,7 +45,7 @@ class RecordViewModel : ViewModel() {
                 picturesDir.mkdirs()
             }
             if (picturesDir != null) {
-                val msTimeStamp = SimpleDateFormat("yyyyMMdd_HHmmssSSS", Locale.US).format(Date())
+                val msTimeStamp = SimpleDateFormat(FILENAME_TIMESTAMP, Locale.US).format(Date())
                 val fileName = "footage_$msTimeStamp"
                 val newFile = File(picturesDir, "$fileName.jpg")
                 if (!newFile.exists()) {
@@ -75,5 +75,6 @@ class RecordViewModel : ViewModel() {
 
     companion object {
         private const val TAG = "bg-record"
+        internal const val FILENAME_TIMESTAMP = "yyyyMMdd_HHmmssSSS"
     }
 }
