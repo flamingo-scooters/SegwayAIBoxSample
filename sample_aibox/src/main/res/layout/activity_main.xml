@@ -29,7 +29,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="15dp"
-                android:onClick="onClick"
                 android:text="@string/btn_open_image" />
 
             <Button
@@ -37,7 +36,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="15dp"
-                android:onClick="onClick"
                 android:text="@string/btn_close_image" />
 
             <Button
@@ -45,7 +43,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="15dp"
-                android:onClick="onClick"
                 android:text="@string/btn_open_camera" />
 
             <Button
@@ -53,7 +50,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="15dp"
-                android:onClick="onClick"
                 android:text="@string/btn_close_camera" />
 
         </LinearLayout>
@@ -69,7 +65,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="15dp"
-                android:onClick="onClick"
                 android:text="@string/btn_detect" />
 
 
@@ -78,7 +73,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="15dp"
-                android:onClick="onClick"
                 android:text="@string/btn_stop_detect" />
         </LinearLayout>
 
