@@ -12,6 +12,7 @@ import android.widget.Toast;
 
 import com.segway.robot.sdk.vision.BindStateListener;
 import com.segway.robot.sdk.vision.Vision;
+import com.segway.robot.sdk.vision.VisionServiceException;
 import com.segway.robot.sdk.vision.calibration.RS2Intrinsic;
 import com.segway.robot.sdk.vision.frame.Frame;
 import com.segway.robot.sdk.vision.stream.PixelFormat;
@@ -48,7 +49,7 @@ public class MainActivity extends Activity {
         mBtnUnbind = findViewById(R.id.unbind);
         mBtnStartVision1 = findViewById(R.id.start_vision_1);
         mBtnStartVision2 = findViewById(R.id.start_vision_2);
-        mBtnStopVision  = findViewById(R.id.stop_vision);
+        mBtnStopVision = findViewById(R.id.stop_vision);
 
         mBtnBind.setOnClickListener(v -> {
             boolean ret = Vision.getInstance().bindService(this, new BindStateListener() {
@@ -91,13 +92,17 @@ public class MainActivity extends Activity {
                 Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show();
                 return;
             }
-            Vision.getInstance().startVision(VisionStreamType.FISH_EYE, new Vision.FrameListener() {
-                @Override
-                public void onNewFrame(int streamType, Frame frame) {
-                    parseFrame(frame);
-                }
-            });
-            mBtnStartVision2.setEnabled(false);
+            try {
+                Vision.getInstance().startVision(VisionStreamType.FISH_EYE, new Vision.FrameListener() {
+                    @Override
+                    public void onNewFrame(int streamType, Frame frame) {
+                        parseFrame(frame);
+                    }
+                });
+                mBtnStartVision2.setEnabled(false);
+            } catch (VisionServiceException e) {
+                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+            }
         });
 
         mBtnStartVision2.setOnClickListener(v -> {
@@ -105,8 +110,12 @@ public class MainActivity extends Activity {
                 Toast.makeText(this, "The vision service is not connected.", Toast.LENGTH_SHORT).show();
                 return;
             }
-            Vision.getInstance().startVision(VisionStreamType.FISH_EYE, (streamType, frame) -> parseFrame(frame));
-            mBtnStartVision2.setEnabled(false);
+            try {
+                Vision.getInstance().startVision(VisionStreamType.FISH_EYE, (streamType, frame) -> parseFrame(frame));
+                mBtnStartVision2.setEnabled(false);
+            } catch (VisionServiceException e) {
+                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+            }
         });
 
         mBtnStopVision.setOnClickListener(v -> {
