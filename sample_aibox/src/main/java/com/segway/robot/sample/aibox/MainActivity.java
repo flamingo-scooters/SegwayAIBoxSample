@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.segway.robot.sample.aibox.segmentation.ImageSegmentationHelper;
 import com.segway.robot.sdk.vision.BindStateListener;
 import com.segway.robot.sdk.vision.Vision;
 import com.segway.robot.sdk.vision.calibration.RS2Intrinsic;
@@ -22,6 +23,8 @@ import com.segway.robot.sdk.vision.frame.Frame;
 import com.segway.robot.sdk.vision.stream.PixelFormat;
 import com.segway.robot.sdk.vision.stream.Resolution;
 import com.segway.robot.sdk.vision.stream.VisionStreamType;
+
+import org.tensorflow.lite.task.vision.segmenter.Segmentation;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -35,7 +38,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ImageSegmentationHelper.SegmentationListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final String LOCAL_IMAGE_PATH = "sdcard/apple.jpeg";
@@ -299,6 +302,17 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    public void onError(String error) {
+        Toast.makeText(this, "seg: " + error, Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onResults(List<? extends Segmentation> results, long inferenceTime, int imageHeight, int imageWidth) {
+        int size = results != null ? results.size() : 0;
+        Toast.makeText(this, "seg: Detected " + size + " results", Toast.LENGTH_LONG).show();
+    }
+
     class ImageWorkThread extends Thread {
         @Override
         public void run() {
@@ -397,6 +411,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                     if (mBitmap != null && shouldRecord) {
                         saveImage(mBitmap);
+                    }
+                    if (mBitmap != null) {
+                        ImageSegmentationHelper segmenter = new ImageSegmentationHelper(2, 0, MainActivity.this, MainActivity.this);
+                        segmenter.segment(mBitmap, 0);
                     }
                     Vision.getInstance().returnFrame(frame);
                 } catch (Exception e) {
