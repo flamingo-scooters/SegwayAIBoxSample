@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private volatile boolean mIsImageStarted;
     private volatile boolean mIsCameraStarted;
     private volatile boolean shouldRecord = false;
+    private volatile long lastRecord = 0L;
     private Bitmap mBitmap;
     private Thread mVisionWorkThread;
     private Thread mImageWorkThread;
@@ -420,6 +421,9 @@ public class MainActivity extends AppCompatActivity {
         if (bitmap == null) {
             return;
         }
+        if (System.currentTimeMillis() < (lastRecord + 290L)) {
+            return;
+        }
         synchronized (mBitmapLock) {
             if (Objects.equals(Environment.getExternalStorageState(), Environment.MEDIA_MOUNTED)) {
                 File footageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
@@ -443,6 +447,7 @@ public class MainActivity extends AppCompatActivity {
                             newFileOut.close();
                             runOnUiThread(() -> Toast.makeText(MainActivity.this, "Saved image", Toast.LENGTH_SHORT).show());
                             Log.d("bg-record", "Saved image");
+                            lastRecord = System.currentTimeMillis();
                         } catch (Throwable t) {
                             String logMessage = "Error resizing/saving bitmap";
                             Log.e("bg-record", logMessage);
