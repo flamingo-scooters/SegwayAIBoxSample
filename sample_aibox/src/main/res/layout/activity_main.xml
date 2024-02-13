@@ -96,6 +96,11 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp" />
 
+        <com.segway.robot.sample.aibox.segmentation.OverlayView
+            android:id="@+id/overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
     </LinearLayout>
 
 
