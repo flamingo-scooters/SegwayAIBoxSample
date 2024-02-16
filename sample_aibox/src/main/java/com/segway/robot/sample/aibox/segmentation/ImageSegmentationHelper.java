@@ -105,7 +105,7 @@ public class ImageSegmentationHelper {
                     );
         } catch (IllegalStateException | IOException e) {
             imageSegmentationListener.onError(
-                    "Image segmentation failed to initialize. See error logs for details"
+                    "Image segmentation failed to initialize. " + e.getMessage()
             );
             Log.e(TAG, "TFLite failed to load model with error: " + e.getMessage());
         }

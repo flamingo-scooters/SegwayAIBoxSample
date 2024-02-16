@@ -304,13 +304,16 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
 
     @Override
     public void onError(String error) {
-        Toast.makeText(this, "seg: " + error, Toast.LENGTH_LONG).show();
+        runOnUiThread(() -> Toast.makeText(MainActivity.this, "seg: " + error, Toast.LENGTH_LONG).show());
     }
 
     @Override
     public void onResults(List<? extends Segmentation> results, long inferenceTime, int imageHeight, int imageWidth) {
-        int size = results != null ? results.size() : 0;
-        Toast.makeText(this, "seg: Detected " + size + " results", Toast.LENGTH_LONG).show();
+        runOnUiThread(() -> {
+                    int size = results != null ? results.size() : 0;
+                    Toast.makeText(this, "seg: Detected " + size + " results", Toast.LENGTH_LONG).show();
+                }
+        );
     }
 
     class ImageWorkThread extends Thread {
