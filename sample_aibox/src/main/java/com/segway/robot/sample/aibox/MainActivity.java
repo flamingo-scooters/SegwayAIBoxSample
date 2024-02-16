@@ -311,7 +311,9 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
     public void onResults(List<? extends Segmentation> results, long inferenceTime, int imageHeight, int imageWidth) {
         runOnUiThread(() -> {
                     int size = results != null ? results.size() : 0;
-                    Toast.makeText(this, "seg: Detected " + size + " results", Toast.LENGTH_LONG).show();
+                    String log = "seg: Detected " + size + " results";
+                    Toast.makeText(this, log, Toast.LENGTH_LONG).show();
+                    Log.d(TAG, log);
                 }
         );
     }
