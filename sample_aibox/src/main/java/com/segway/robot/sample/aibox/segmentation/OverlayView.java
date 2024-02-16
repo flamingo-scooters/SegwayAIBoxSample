@@ -45,7 +45,7 @@ public class OverlayView extends View {
     private Bitmap scaleBitmap;
     private OverlayViewListener listener;
 
-    void setOnOverlayViewListener(OverlayViewListener listener) {
+    public void setOnOverlayViewListener(OverlayViewListener listener) {
         this.listener = listener;
     }
 
@@ -62,7 +62,7 @@ public class OverlayView extends View {
         }
     }
 
-    void setResults(
+    public void setResults(
             List<Segmentation> segmentResult,
             int imageHeight,
             int imageWidth
@@ -121,15 +121,15 @@ public class OverlayView extends View {
         }
     }
 
-    interface OverlayViewListener {
+    public interface OverlayViewListener {
         void onLabels(List<ColorLabel> colorLabels);
     }
 
 
-    class ColorLabel {
+    public class ColorLabel {
 
         int id;
-        String label;
+        public String label;
         int rgbColor;
         boolean isExist;
 

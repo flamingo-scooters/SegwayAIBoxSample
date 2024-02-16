@@ -90,16 +90,21 @@
                 android:text="@string/btn_start_recording" />
         </LinearLayout>
 
-        <com.segway.robot.sample.aibox.VisionImageView
-            android:id="@+id/image"
+        <RelativeLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp" />
+            android:layout_marginTop="10dp">
 
-        <com.segway.robot.sample.aibox.segmentation.OverlayView
-            android:id="@+id/overlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            <com.segway.robot.sample.aibox.VisionImageView
+                android:id="@+id/image"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <com.segway.robot.sample.aibox.segmentation.OverlayView
+                android:id="@+id/overlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </RelativeLayout>
 
     </LinearLayout>
 

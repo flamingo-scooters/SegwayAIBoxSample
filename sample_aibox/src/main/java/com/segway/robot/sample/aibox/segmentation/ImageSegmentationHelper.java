@@ -155,7 +155,7 @@ public class ImageSegmentationHelper {
         void onError(String error);
 
         void onResults(
-                List<? extends Segmentation> results,
+                List<Segmentation> results,
                 long inferenceTime,
                 int imageHeight,
                 int imageWidth

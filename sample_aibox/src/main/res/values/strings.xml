@@ -1,9 +1,9 @@
 <resources>
     <string name="app_name">sample_aibox</string>
     <string name="switch_camera">Enable  Camera</string>
-    <string name="btn_detect">Start</string>
+    <string name="btn_detect">Start detection</string>
     <string name="tv_des">Model File:sdcard/apple_model.tflite\nImage File:sdcard/apple.jpeg</string>
-    <string name="btn_stop_detect">stop</string>
+    <string name="btn_stop_detect">Stop detection</string>
     <string name="btn_open_image">Open local image</string>
     <string name="btn_open_camera">Open the camera</string>
     <string name="btn_close_camera">Close the camera</string>

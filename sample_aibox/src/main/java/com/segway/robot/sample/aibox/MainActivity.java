@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.RectF;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PersistableBundle;
@@ -16,6 +17,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.segway.robot.sample.aibox.segmentation.ImageSegmentationHelper;
+import com.segway.robot.sample.aibox.segmentation.OverlayView;
 import com.segway.robot.sdk.vision.BindStateListener;
 import com.segway.robot.sdk.vision.Vision;
 import com.segway.robot.sdk.vision.calibration.RS2Intrinsic;
@@ -64,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
     private Button mBtnStart;
     private Button mBtnStop;
     private Button mBtnRecording;
+    private OverlayView mVisionOverlay;
     private ByteBuffer mData;
     private DetectedResult[] mDetectedResults;
     private List<RectF> mRectList = new ArrayList<>();
@@ -87,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
         mBtnOpenCamera = findViewById(R.id.btn_open_camera);
         mBtnCloseCamera = findViewById(R.id.btn_close_camera);
         mBtnRecording = findViewById(R.id.btn_record);
+        mVisionOverlay = findViewById(R.id.overlay);
         mBtnStart = findViewById(R.id.btn_start);
         mBtnStop = findViewById(R.id.btn_stop);
         checkPermission();
@@ -118,6 +122,14 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
             } else {
                 mBtnRecording.setText(R.string.btn_start_recording);
             }
+        });
+        mVisionOverlay.setOnOverlayViewListener(colorLabels -> {
+            String message = "labels: " + colorLabels.toString();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                message = colorLabels.stream().map(colorLabel -> colorLabel.label).reduce((s, s2) -> s + "," + s2).get();
+            }
+            Log.d(TAG, message);
+            Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
         });
     }
 
@@ -308,12 +320,13 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
     }
 
     @Override
-    public void onResults(List<? extends Segmentation> results, long inferenceTime, int imageHeight, int imageWidth) {
+    public void onResults(List<Segmentation> results, long inferenceTime, int imageHeight, int imageWidth) {
         runOnUiThread(() -> {
                     int size = results != null ? results.size() : 0;
                     String log = "seg: Detected " + size + " results";
-                    Toast.makeText(this, log, Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, log, Toast.LENGTH_SHORT).show();
                     Log.d(TAG, log);
+                    mVisionOverlay.setResults(results, imageHeight, imageWidth);
                 }
         );
     }
