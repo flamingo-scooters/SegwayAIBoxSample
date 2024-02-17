@@ -129,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
                 message = colorLabels.stream().map(colorLabel -> colorLabel.label).reduce((s, s2) -> s + "," + s2).get();
             }
             Log.d(TAG, message);
-            Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -304,6 +304,10 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
                             layoutParams.width = mImageViewWidth;
                             layoutParams.height = mImageViewHeight;
                             mImageView.setLayoutParams(layoutParams);
+                            ViewGroup.LayoutParams overlayLayoutParams = mVisionOverlay.getLayoutParams();
+                            overlayLayoutParams.width = mImageViewWidth;
+                            overlayLayoutParams.height = mImageViewHeight;
+                            mVisionOverlay.setLayoutParams(overlayLayoutParams);
 
                         }
                     }
@@ -324,9 +328,10 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
         runOnUiThread(() -> {
                     int size = results != null ? results.size() : 0;
                     String log = "seg: Detected " + size + " results";
-                    Toast.makeText(this, log, Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(this, log, Toast.LENGTH_SHORT).show();
                     Log.d(TAG, log);
                     mVisionOverlay.setResults(results, imageHeight, imageWidth);
+                    mVisionOverlay.invalidate();
                 }
         );
     }
