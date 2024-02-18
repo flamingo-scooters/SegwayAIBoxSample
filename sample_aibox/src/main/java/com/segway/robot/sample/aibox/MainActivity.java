@@ -14,6 +14,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.segway.robot.sample.aibox.segmentation.ImageSegmentationHelper;
@@ -59,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
     private Thread mVisionWorkThread;
     private Thread mImageWorkThread;
     private final Object mBitmapLock = new Object();
+    private TextView mLogs;
     private Button mBtnOpenImage;
     private Button mBtnCloseImage;
     private Button mBtnOpenCamera;
@@ -85,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
             shouldRecord = savedInstanceState.getBoolean("should_record", false);
         }
         mImageView = findViewById(R.id.image);
+        mLogs = findViewById(R.id.tv_logs);
         mBtnOpenImage = findViewById(R.id.btn_open_image);
         mBtnCloseImage = findViewById(R.id.btn_close_image);
         mBtnOpenCamera = findViewById(R.id.btn_open_camera);
@@ -126,10 +129,11 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
         mVisionOverlay.setOnOverlayViewListener(colorLabels -> {
             String message = "labels: " + colorLabels.toString();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                message = colorLabels.stream().map(colorLabel -> colorLabel.label).reduce((s, s2) -> s + "," + s2).get();
+                message = colorLabels.stream().map(colorLabel -> colorLabel.label).reduce((s, s2) -> s + ", " + s2).get();
             }
             Log.d(TAG, message);
-            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+//            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+            mLogs.setText(message);
         });
     }
 
