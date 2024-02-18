@@ -74,6 +74,7 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
     private List<RectF> mRectList = new ArrayList<>();
     private int mImageViewWidth;
     private int mImageViewHeight;
+    private ImageSegmentationHelper mSegmenter;
 
     static {
         System.loadLibrary("vision_aibox");
@@ -135,6 +136,7 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
 //            Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
             mLogs.setText(message);
         });
+        mSegmenter = new ImageSegmentationHelper(2, 0, MainActivity.this, MainActivity.this);
     }
 
     @Override
@@ -151,6 +153,8 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
         mBtnStop.setEnabled(false);
         mBtnCloseCamera.setEnabled(false);
         mBtnCloseImage.setEnabled(false);
+        mVisionOverlay.clear();
+        mLogs.setText("");
     }
 
     private void checkPermission() {
@@ -197,6 +201,7 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
             mImageWorkThread = null;
         }
         resetUI();
+        mSegmenter.clearImageSegmenter();
     }
 
     private synchronized void openCamera() {
@@ -217,10 +222,13 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
                 mVisionWorkThread.join();
             } catch (Exception e) {
                 e.printStackTrace();
+            } finally {
+                mSegmenter.clearImageSegmenter();
             }
             mVisionWorkThread = null;
         }
         resetUI();
+
     }
 
     private synchronized void startDetect() {
@@ -440,8 +448,7 @@ public class MainActivity extends AppCompatActivity implements ImageSegmentation
                         saveImage(mBitmap);
                     }
                     if (mBitmap != null) {
-                        ImageSegmentationHelper segmenter = new ImageSegmentationHelper(2, 0, MainActivity.this, MainActivity.this);
-                        segmenter.segment(mBitmap, 0);
+                        mSegmenter.segment(mBitmap, 0);
                     }
                     Vision.getInstance().returnFrame(frame);
                 } catch (Exception e) {

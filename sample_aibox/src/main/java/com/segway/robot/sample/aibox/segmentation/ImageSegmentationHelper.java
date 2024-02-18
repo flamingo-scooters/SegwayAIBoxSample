@@ -64,7 +64,7 @@ public class ImageSegmentationHelper {
     private ImageSegmenter imageSegmenter;
 
 
-    void clearImageSegmenter() {
+    public void clearImageSegmenter() {
         imageSegmenter = null;
     }
 

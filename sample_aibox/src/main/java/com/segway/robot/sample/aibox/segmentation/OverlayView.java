@@ -49,7 +49,7 @@ public class OverlayView extends View {
         this.listener = listener;
     }
 
-    void clear() {
+    public void clear() {
         scaleBitmap = null;
         invalidate();
     }
